@@ -1,16 +1,41 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useGameState } from "@/hooks/useGameState";
+import StartScreen from "@/components/game/StartScreen";
+import GameScreen from "@/components/game/GameScreen";
+import GameOverScreen from "@/components/game/GameOverScreen";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const Index = () => {
+  const {
+    state,
+    toggleLang,
+    selectAll,
+    selectNone,
+    startGame,
+    answerQuestion,
+    nextQuestion,
+    restart,
+  } = useGameState();
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="min-h-screen bg-background flex justify-center items-start p-4 md:p-8">
+      <div className="w-full max-w-[680px] bg-card border border-border rounded-2xl p-6 md:p-8 shadow-2xl">
+        {state.screen === "start" && (
+          <StartScreen
+            selectedLangs={state.selectedLangs}
+            onToggleLang={toggleLang}
+            onSelectAll={selectAll}
+            onSelectNone={selectNone}
+            onStart={startGame}
+          />
+        )}
+        {state.screen === "game" && (
+          <GameScreen state={state} onAnswer={answerQuestion} onNext={nextQuestion} />
+        )}
+        {state.screen === "gameover" && (
+          <GameOverScreen state={state} onRestart={restart} />
+        )}
+      </div>
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
