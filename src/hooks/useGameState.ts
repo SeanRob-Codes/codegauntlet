@@ -13,6 +13,7 @@ export interface GameState {
   answered: boolean;
   correct: boolean | null;
   chosen: number | null;
+  typedAnswer: string;
   streak: number;
   total: number;
   correctTotal: number;

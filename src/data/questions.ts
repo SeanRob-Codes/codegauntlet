@@ -1,10 +1,14 @@
+export type QuestionType = "choice" | "typed";
+
 export interface Question {
   lang: string;
   level: number;
   q: string;
   code: string | null;
-  options: string[];
-  answer: number;
+  type?: QuestionType; // defaults to "choice"
+  options: string[];   // used for "choice" type
+  answer: number;      // used for "choice" type
+  accept?: string[];   // accepted answers for "typed" type (case-insensitive, trimmed)
   explain: string;
 }
 
