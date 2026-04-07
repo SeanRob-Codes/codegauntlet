@@ -61,6 +61,7 @@ const initialState: GameState = {
   answered: false,
   correct: null,
   chosen: null,
+  typedAnswer: "",
   streak: 0,
   total: 0,
   correctTotal: 0,
@@ -116,6 +117,10 @@ export function useGameState() {
     });
   }, []);
 
+  const setTypedAnswer = useCallback((val: string) => {
+    setState((s) => ({ ...s, typedAnswer: val }));
+  }, []);
+
   const answerQuestion = useCallback((chosenIdx: number) => {
     setState((s) => {
       if (s.answered || !s.currentQ) return s;
@@ -146,6 +151,39 @@ export function useGameState() {
     });
   }, []);
 
+  const answerTyped = useCallback(() => {
+    setState((s) => {
+      if (s.answered || !s.currentQ || !s.currentQ.accept) return s;
+      const userAnswer = s.typedAnswer.trim().toLowerCase();
+      const correct = s.currentQ.accept.some(
+        (a) => a.trim().toLowerCase() === userAnswer
+      );
+      let newLevel = s.level;
+      let levelUpBanner = false;
+      let newStreak = correct ? s.streak + 1 : 0;
+      let newLives = correct ? s.lives : s.lives - 1;
+
+      if (correct && newStreak > 0 && newStreak % 3 === 0 && s.level < 4) {
+        newLevel = s.level + 1;
+        levelUpBanner = true;
+      }
+
+      return {
+        ...s,
+        answered: true,
+        chosen: null,
+        correct,
+        score: correct ? s.score + 1 : s.score,
+        streak: newStreak,
+        lives: newLives,
+        total: s.total + 1,
+        correctTotal: correct ? s.correctTotal + 1 : s.correctTotal,
+        level: newLevel,
+        levelUpBanner,
+      };
+    });
+  }, []);
+
   const nextQuestion = useCallback(() => {
     setState((s) => {
       if (s.lives <= 0) {
@@ -158,9 +196,10 @@ export function useGameState() {
         answered: false,
         correct: null,
         chosen: null,
+        typedAnswer: "",
         levelUpBanner: false,
         currentQ: q,
-        shuffledOptions: shuffle(q.options.map((o, i) => ({ o, i }))),
+        shuffledOptions: q.type === "typed" ? [] : shuffle(q.options.map((o, i) => ({ o, i }))),
       };
     });
   }, []);
@@ -179,6 +218,8 @@ export function useGameState() {
     selectNone,
     startGame,
     answerQuestion,
+    answerTyped,
+    setTypedAnswer,
     nextQuestion,
     restart,
   };
