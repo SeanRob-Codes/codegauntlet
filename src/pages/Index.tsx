@@ -11,6 +11,8 @@ const Index = () => {
     selectNone,
     startGame,
     answerQuestion,
+    answerTyped,
+    setTypedAnswer,
     nextQuestion,
     restart,
   } = useGameState();
@@ -28,7 +30,13 @@ const Index = () => {
           />
         )}
         {state.screen === "game" && (
-          <GameScreen state={state} onAnswer={answerQuestion} onNext={nextQuestion} />
+          <GameScreen
+            state={state}
+            onAnswer={answerQuestion}
+            onAnswerTyped={answerTyped}
+            onTypedChange={setTypedAnswer}
+            onNext={nextQuestion}
+          />
         )}
         {state.screen === "gameover" && (
           <GameOverScreen state={state} onRestart={restart} />

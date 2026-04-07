@@ -109,10 +109,11 @@ export function useGameState() {
         answered: false,
         correct: null,
         chosen: null,
+        typedAnswer: "",
         usedQIds,
         levelUpBanner: false,
         currentQ: q,
-        shuffledOptions: shuffle(q.options.map((o, i) => ({ o, i }))),
+        shuffledOptions: q.type === "typed" ? [] : shuffle(q.options.map((o, i) => ({ o, i }))),
       };
     });
   }, []);
