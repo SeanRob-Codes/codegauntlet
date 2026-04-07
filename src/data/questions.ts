@@ -1,10 +1,14 @@
+export type QuestionType = "choice" | "typed";
+
 export interface Question {
   lang: string;
   level: number;
   q: string;
   code: string | null;
-  options: string[];
-  answer: number;
+  type?: QuestionType; // defaults to "choice"
+  options: string[];   // used for "choice" type
+  answer: number;      // used for "choice" type
+  accept?: string[];   // accepted answers for "typed" type (case-insensitive, trimmed)
   explain: string;
 }
 
@@ -476,4 +480,77 @@ export const ALL_QUESTIONS: Question[] = [
   {lang:"Tools",level:3,q:"What is Webpack?",code:null,options:["A web server","A module bundler that compiles JavaScript, CSS, and assets for the browser","A testing tool","A database"],answer:1,explain:"Webpack bundles modules and assets into optimized files for production."},
   {lang:"Tools",level:4,q:"What is Kubernetes?",code:null,options:["A programming language","A container orchestration platform for automating deployment and scaling","A database","A CI tool"],answer:1,explain:"Kubernetes (K8s) manages containerized applications at scale across clusters."},
   {lang:"Tools",level:4,q:"What is Terraform?",code:null,options:["A game","Infrastructure as Code tool for provisioning cloud resources declaratively","A web framework","A testing library"],answer:1,explain:"Terraform lets you define infrastructure in code and provision it across cloud providers."},
+
+  // ===== TYPED QUESTIONS (type: "typed") =====
+
+  // HTML typed
+  {lang:"HTML",level:2,q:"What tag do you use to create a line break in HTML?",code:null,type:"typed",options:[],answer:0,accept:["<br>","<br/>","<br />","br"],explain:"The `<br>` tag creates a line break. It's a void element — no closing tag needed."},
+  {lang:"HTML",level:3,q:"Write the HTML attribute that specifies an image's alternate text.",code:'<img src="photo.jpg" ____="A sunset">',type:"typed",options:[],answer:0,accept:["alt"],explain:"The `alt` attribute provides alternative text for images."},
+  {lang:"HTML",level:2,q:"What tag creates an unordered (bulleted) list?",code:null,type:"typed",options:[],answer:0,accept:["<ul>","ul"],explain:"`<ul>` creates an unordered list with bullet points."},
+
+  // CSS typed
+  {lang:"CSS",level:2,q:"What CSS property makes text bold?",code:null,type:"typed",options:[],answer:0,accept:["font-weight","font-weight: bold","font-weight: bold;"],explain:"The `font-weight` property controls text boldness. Common values: `bold`, `700`."},
+  {lang:"CSS",level:2,q:"What CSS property adds space inside an element's border?",code:null,type:"typed",options:[],answer:0,accept:["padding"],explain:"`padding` adds space between the content and the border."},
+  {lang:"CSS",level:3,q:"Write the CSS to center text horizontally.",code:null,type:"typed",options:[],answer:0,accept:["text-align: center","text-align: center;","text-align:center","text-align:center;"],explain:"`text-align: center` horizontally centers inline/text content."},
+
+  // JavaScript typed
+  {lang:"JavaScript",level:1,q:"What keyword declares a constant variable in JavaScript?",code:null,type:"typed",options:[],answer:0,accept:["const"],explain:"`const` declares a block-scoped variable that can't be reassigned."},
+  {lang:"JavaScript",level:2,q:"What method converts a string to uppercase?",code:'let s = "hello";\ns.____();',type:"typed",options:[],answer:0,accept:["toUpperCase","toUpperCase()"],explain:"`.toUpperCase()` returns a new string with all characters uppercased."},
+  {lang:"JavaScript",level:2,q:"What array method adds an element to the end?",code:null,type:"typed",options:[],answer:0,accept:["push",".push","push()"],explain:"`.push()` adds one or more elements to the end of an array."},
+  {lang:"JavaScript",level:3,q:"What method converts a JSON string to a JavaScript object?",code:null,type:"typed",options:[],answer:0,accept:["JSON.parse","JSON.parse()"],explain:"`JSON.parse()` parses a JSON string into a JavaScript object."},
+
+  // Python typed
+  {lang:"Python",level:1,q:"What keyword defines a function in Python?",code:null,type:"typed",options:[],answer:0,accept:["def"],explain:"`def` defines a function in Python."},
+  {lang:"Python",level:2,q:"What built-in function returns the length of a list?",code:null,type:"typed",options:[],answer:0,accept:["len","len()"],explain:"`len()` returns the number of items in a sequence."},
+  {lang:"Python",level:2,q:"What method adds an element to the end of a list?",code:null,type:"typed",options:[],answer:0,accept:["append",".append","append()"],explain:"`.append()` adds a single element to the end of a list."},
+  {lang:"Python",level:3,q:"What keyword is used to handle exceptions in Python?",code:null,type:"typed",options:[],answer:0,accept:["try","try/except","try except"],explain:"`try`/`except` blocks catch and handle exceptions."},
+
+  // SQL typed
+  {lang:"SQL",level:1,q:"What SQL keyword retrieves data from a table?",code:null,type:"typed",options:[],answer:0,accept:["SELECT","select"],explain:"`SELECT` is the fundamental command for querying data."},
+  {lang:"SQL",level:2,q:"What SQL clause sorts results?",code:null,type:"typed",options:[],answer:0,accept:["ORDER BY","order by"],explain:"`ORDER BY` sorts result rows by one or more columns."},
+  {lang:"SQL",level:3,q:"What SQL keyword removes duplicate rows from results?",code:null,type:"typed",options:[],answer:0,accept:["DISTINCT","distinct"],explain:"`SELECT DISTINCT` returns only unique rows."},
+
+  // C typed
+  {lang:"C",level:2,q:"What function allocates dynamic memory in C?",code:null,type:"typed",options:[],answer:0,accept:["malloc","malloc()"],explain:"`malloc()` allocates a block of memory on the heap."},
+  {lang:"C",level:2,q:"What function frees dynamically allocated memory in C?",code:null,type:"typed",options:[],answer:0,accept:["free","free()"],explain:"`free()` releases memory previously allocated by `malloc`."},
+
+  // Java typed
+  {lang:"Java",level:1,q:"What keyword creates a new object instance in Java?",code:null,type:"typed",options:[],answer:0,accept:["new"],explain:"`new` instantiates a class and calls its constructor."},
+  {lang:"Java",level:2,q:"What method prints text to the console in Java?",code:null,type:"typed",options:[],answer:0,accept:["System.out.println","System.out.println()","println","System.out.print"],explain:"`System.out.println()` prints text with a newline to standard output."},
+
+  // Git typed
+  {lang:"Git",level:1,q:"What git command stages all changes for commit?",code:null,type:"typed",options:[],answer:0,accept:["git add .","git add -A","git add --all","git add"],explain:"`git add .` or `git add -A` stages all changes in the working directory."},
+  {lang:"Git",level:2,q:"What git command shows the commit history?",code:null,type:"typed",options:[],answer:0,accept:["git log","git log --oneline"],explain:"`git log` shows the commit history of the current branch."},
+
+  // Bash typed
+  {lang:"Bash",level:1,q:"What command creates a new directory in the terminal?",code:null,type:"typed",options:[],answer:0,accept:["mkdir"],explain:"`mkdir dirname` creates a new directory."},
+  {lang:"Bash",level:2,q:"What command removes a file in Linux/Mac?",code:null,type:"typed",options:[],answer:0,accept:["rm"],explain:"`rm filename` removes (deletes) a file."},
+
+  // TypeScript typed
+  {lang:"TypeScript",level:2,q:"What keyword makes a property optional in a TypeScript interface?",code:null,type:"typed",options:[],answer:0,accept:["?"],explain:"The `?` after a property name marks it as optional: `name?: string`."},
+
+  // React typed
+  {lang:"React",level:2,q:"What React hook manages component state?",code:null,type:"typed",options:[],answer:0,accept:["useState","usestate"],explain:"`useState` is the React Hook for adding state to functional components."},
+  {lang:"React",level:3,q:"What React hook runs side effects after render?",code:null,type:"typed",options:[],answer:0,accept:["useEffect","useeffect"],explain:"`useEffect` runs side effects like API calls after the component renders."},
+
+  // Rust typed
+  {lang:"Rust",level:1,q:"What keyword makes a variable mutable in Rust?",code:null,type:"typed",options:[],answer:0,accept:["mut","let mut"],explain:"`mut` marks a variable as mutable: `let mut x = 5;`."},
+  {lang:"Rust",level:2,q:"What Rust macro prints to the console with a newline?",code:null,type:"typed",options:[],answer:0,accept:["println!","println"],explain:"`println!` is a macro that prints formatted text with a newline."},
+
+  // Go typed
+  {lang:"Go",level:1,q:"What keyword declares a function in Go?",code:null,type:"typed",options:[],answer:0,accept:["func"],explain:"`func` declares a function in Go: `func main() { }`."},
+  {lang:"Go",level:2,q:"What keyword launches a goroutine in Go?",code:null,type:"typed",options:[],answer:0,accept:["go"],explain:"The `go` keyword starts a concurrent goroutine: `go myFunc()`."},
+
+  // PHP typed
+  {lang:"PHP",level:1,q:"What symbol prefixes every variable in PHP?",code:null,type:"typed",options:[],answer:0,accept:["$"],explain:"PHP variables always start with `$`: `$name = 'Alice';`."},
+
+  // Kotlin typed
+  {lang:"Kotlin",level:1,q:"What keyword declares an immutable variable in Kotlin?",code:null,type:"typed",options:[],answer:0,accept:["val"],explain:"`val` declares a read-only variable. `var` is mutable."},
+
+  // Swift typed
+  {lang:"Swift",level:1,q:"What keyword declares a constant in Swift?",code:null,type:"typed",options:[],answer:0,accept:["let"],explain:"`let` declares an immutable constant in Swift."},
+
+  // Sass typed
+  {lang:"Sass",level:1,q:"What symbol prefixes variables in SCSS?",code:null,type:"typed",options:[],answer:0,accept:["$"],explain:"SCSS variables use `$`: `$primary: #3498db;`."},
 ];
+

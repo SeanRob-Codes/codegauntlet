@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LANG_COLORS } from "@/data/questions";
 import type { GameState } from "@/hooks/useGameState";
@@ -5,17 +6,35 @@ import type { GameState } from "@/hooks/useGameState";
 interface GameScreenProps {
   state: GameState;
   onAnswer: (idx: number) => void;
+  onAnswerTyped: () => void;
+  onTypedChange: (val: string) => void;
   onNext: () => void;
 }
 
 const LEVEL_LABELS = ["", "Beginner", "Intermediate", "Advanced", "Expert"];
 
-export default function GameScreen({ state, onAnswer, onNext }: GameScreenProps) {
+export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChange, onNext }: GameScreenProps) {
   const q = state.currentQ;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const isTyped = q?.type === "typed";
+
+  useEffect(() => {
+    if (isTyped && !state.answered && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isTyped, state.answered, q]);
+
   if (!q) return null;
 
   const lc = LANG_COLORS[q.lang] || LANG_COLORS["Git"];
   const pct = Math.min((state.score / 20) * 100, 98);
+
+  const handleTypedSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!state.answered && state.typedAnswer.trim()) {
+      onAnswerTyped();
+    }
+  };
 
   return (
     <div>
@@ -89,9 +108,16 @@ export default function GameScreen({ state, onAnswer, onNext }: GameScreenProps)
       >
         {q.lang}
       </span>
-      <p className="text-xs text-muted-foreground font-mono mb-4">
-        {LEVEL_LABELS[q.level]} · Difficulty {q.level}/4
-      </p>
+      <div className="flex items-center gap-2 mb-4">
+        <p className="text-xs text-muted-foreground font-mono">
+          {LEVEL_LABELS[q.level]} · Difficulty {q.level}/4
+        </p>
+        {isTyped && (
+          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-accent/20 border border-accent/30 text-accent-foreground">
+            ⌨ Type answer
+          </span>
+        )}
+      </div>
 
       {/* Question card */}
       <AnimatePresence mode="wait">
@@ -111,39 +137,93 @@ export default function GameScreen({ state, onAnswer, onNext }: GameScreenProps)
             </pre>
           )}
 
-          <div className="flex flex-col gap-2">
-            {state.shuffledOptions.map(({ o, i }) => {
-              let btnClass =
-                "text-left px-4 py-3 rounded-lg text-sm font-medium border transition-all duration-150";
+          {/* Multiple choice answers */}
+          {!isTyped && (
+            <div className="flex flex-col gap-2">
+              {state.shuffledOptions.map(({ o, i }) => {
+                let btnClass =
+                  "text-left px-4 py-3 rounded-lg text-sm font-medium border transition-all duration-150";
 
-              if (state.answered) {
-                if (i === q.answer) {
-                  btnClass +=
-                    " bg-primary/10 border-primary/50 text-primary box-glow-primary";
-                } else if (i === state.chosen && !state.correct) {
-                  btnClass +=
-                    " bg-destructive/10 border-destructive/50 text-destructive box-glow-destructive";
+                if (state.answered) {
+                  if (i === q.answer) {
+                    btnClass +=
+                      " bg-primary/10 border-primary/50 text-primary box-glow-primary";
+                  } else if (i === state.chosen && !state.correct) {
+                    btnClass +=
+                      " bg-destructive/10 border-destructive/50 text-destructive box-glow-destructive";
+                  } else {
+                    btnClass += " bg-secondary border-border text-muted-foreground opacity-50";
+                  }
                 } else {
-                  btnClass += " bg-secondary border-border text-muted-foreground opacity-50";
+                  btnClass +=
+                    " bg-secondary border-border text-secondary-foreground hover:bg-muted hover:border-muted-foreground/30 hover:text-foreground cursor-pointer";
                 }
-              } else {
-                btnClass +=
-                  " bg-secondary border-border text-secondary-foreground hover:bg-muted hover:border-muted-foreground/30 hover:text-foreground cursor-pointer";
-              }
 
-              return (
-                <motion.button
-                  key={i}
-                  whileTap={!state.answered ? { scale: 0.98 } : undefined}
-                  onClick={() => !state.answered && onAnswer(i)}
-                  disabled={state.answered}
-                  className={btnClass}
-                >
-                  {o}
-                </motion.button>
-              );
-            })}
-          </div>
+                return (
+                  <motion.button
+                    key={i}
+                    whileTap={!state.answered ? { scale: 0.98 } : undefined}
+                    onClick={() => !state.answered && onAnswer(i)}
+                    disabled={state.answered}
+                    className={btnClass}
+                  >
+                    {o}
+                  </motion.button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Typed answer input */}
+          {isTyped && !state.answered && (
+            <form onSubmit={handleTypedSubmit} className="flex flex-col gap-3">
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-mono text-sm select-none">›</span>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={state.typedAnswer}
+                  onChange={(e) => onTypedChange(e.target.value)}
+                  placeholder="Type your answer..."
+                  maxLength={200}
+                  className="w-full pl-7 pr-4 py-3 rounded-lg text-sm font-mono bg-background border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </div>
+              <motion.button
+                type="submit"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                disabled={!state.typedAnswer.trim()}
+                className="self-start px-6 py-2.5 rounded-lg text-sm font-mono font-semibold border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Submit →
+              </motion.button>
+            </form>
+          )}
+
+          {/* Show correct answer for typed after answering */}
+          {isTyped && state.answered && (
+            <div className="flex flex-col gap-2">
+              <div
+                className={`px-4 py-3 rounded-lg text-sm font-mono border ${
+                  state.correct
+                    ? "bg-primary/10 border-primary/50 text-primary"
+                    : "bg-destructive/10 border-destructive/50 text-destructive"
+                }`}
+              >
+                <span className="text-muted-foreground text-xs block mb-1">Your answer:</span>
+                {state.typedAnswer || "(empty)"}
+              </div>
+              {!state.correct && q.accept && (
+                <div className="px-4 py-3 rounded-lg text-sm font-mono border bg-primary/10 border-primary/50 text-primary">
+                  <span className="text-muted-foreground text-xs block mb-1">Accepted answers:</span>
+                  {q.accept.join(" · ")}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Feedback */}
           <AnimatePresence>
