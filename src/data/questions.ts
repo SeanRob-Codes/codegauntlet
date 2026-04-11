@@ -1,4 +1,4 @@
-export type QuestionType = "choice" | "typed";
+export type QuestionType = "choice" | "typed" | "fill";
 
 export interface Question {
   lang: string;
@@ -8,7 +8,8 @@ export interface Question {
   type?: QuestionType; // defaults to "choice"
   options: string[];   // used for "choice" type
   answer: number;      // used for "choice" type
-  accept?: string[];   // accepted answers for "typed" type (case-insensitive, trimmed)
+  accept?: string[];   // accepted answers for "typed" and "fill" types (case-insensitive, trimmed)
+  hint?: string;       // optional hint for typed/fill questions
   explain: string;
 }
 
