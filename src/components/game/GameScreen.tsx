@@ -16,7 +16,16 @@ const LEVEL_LABELS = ["", "Beginner", "Intermediate", "Advanced", "Expert"];
 export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChange, onNext }: GameScreenProps) {
   const q = state.currentQ;
   const inputRef = useRef<HTMLInputElement>(null);
-  const isTyped = q?.type === "typed";
+  const isTyped = q?.type === "typed" || q?.type === "fill";
+  const isFill = q?.type === "fill";
+  const [hintRevealed, setHintRevealed] = useState(false);
+  const [hintLevel, setHintLevel] = useState(0); // 0=none, 1=hint text, 2=first letters, 3=length
+
+  // Reset hint state on new question
+  useEffect(() => {
+    setHintRevealed(false);
+    setHintLevel(0);
+  }, [q]);
 
   useEffect(() => {
     if (isTyped && !state.answered && inputRef.current) {
@@ -34,6 +43,58 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
     if (!state.answered && state.typedAnswer.trim()) {
       onAnswerTyped();
     }
+  };
+
+  const revealNextHint = () => {
+    setHintLevel((prev) => Math.min(prev + 1, 3));
+    setHintRevealed(true);
+  };
+
+  const getHintContent = () => {
+    if (!q.accept || q.accept.length === 0) return null;
+    const answer = q.accept[0];
+    const hints: string[] = [];
+
+    if (hintLevel >= 1 && q.hint) {
+      hints.push(`💡 ${q.hint}`);
+    } else if (hintLevel >= 1 && !q.hint) {
+      // If no hint text, skip to letter hint
+      hints.push(`💡 Answer starts with "${answer.charAt(0).toUpperCase()}"`);
+    }
+    if (hintLevel >= 2) {
+      const revealed = answer.slice(0, Math.ceil(answer.length * 0.4));
+      hints.push(`🔤 Starts with: "${revealed}..."`);
+    }
+    if (hintLevel >= 3) {
+      hints.push(`📏 Answer is ${answer.length} character${answer.length !== 1 ? "s" : ""} long`);
+    }
+    return hints;
+  };
+
+  // For fill questions, render code with the blank highlighted
+  const renderFillCode = (code: string) => {
+    const parts = code.split("____");
+    if (parts.length < 2) return <span>{code}</span>;
+    return (
+      <>
+        {parts.map((part, idx) => (
+          <span key={idx}>
+            {part}
+            {idx < parts.length - 1 && (
+              <span className="inline-block min-w-[60px] border-b-2 border-dashed border-primary mx-1 text-primary font-bold">
+                {state.answered ? (
+                  <span className={state.correct ? "text-primary" : "text-destructive"}>
+                    {state.correct ? q.accept?.[0] || "" : state.typedAnswer || "???"}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground/40 text-xs">????</span>
+                )}
+              </span>
+            )}
+          </span>
+        ))}
+      </>
+    );
   };
 
   return (
@@ -112,7 +173,12 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
         <p className="text-xs text-muted-foreground font-mono">
           {LEVEL_LABELS[q.level]} · Difficulty {q.level}/4
         </p>
-        {isTyped && (
+        {isFill && (
+          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-warning/15 border border-warning/30 text-warning">
+            🧩 Fill the blank
+          </span>
+        )}
+        {q.type === "typed" && (
           <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-accent/20 border border-accent/30 text-accent-foreground">
             ⌨ Type answer
           </span>
@@ -131,9 +197,15 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
         >
           <p className="text-sm text-foreground leading-relaxed mb-4">{q.q}</p>
 
-          {q.code && (
+          {/* Code block — fill type renders blanks inline */}
+          {q.code && !isFill && (
             <pre className="bg-background border border-border rounded-lg p-4 font-mono text-xs text-primary leading-relaxed mb-4 overflow-x-auto">
               {q.code}
+            </pre>
+          )}
+          {q.code && isFill && (
+            <pre className="bg-background border border-border rounded-lg p-4 font-mono text-xs text-primary leading-relaxed mb-4 overflow-x-auto whitespace-pre-wrap">
+              {renderFillCode(q.code)}
             </pre>
           )}
 
@@ -174,23 +246,51 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
             </div>
           )}
 
-          {/* Typed answer input */}
+          {/* Typed / Fill answer input */}
           {isTyped && !state.answered && (
             <form onSubmit={handleTypedSubmit} className="flex flex-col gap-3">
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-mono text-sm select-none">›</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-mono text-sm select-none">
+                  {isFill ? "___" : "›"}
+                </span>
                 <input
                   ref={inputRef}
                   type="text"
                   value={state.typedAnswer}
                   onChange={(e) => onTypedChange(e.target.value)}
-                  placeholder="Type your answer..."
+                  placeholder={isFill ? "Type the missing code..." : "Type your answer..."}
                   maxLength={200}
-                  className="w-full pl-7 pr-4 py-3 rounded-lg text-sm font-mono bg-background border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
+                  className="w-full pl-10 pr-4 py-3 rounded-lg text-sm font-mono bg-background border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
                   autoComplete="off"
                   spellCheck={false}
                 />
               </div>
+
+              {/* Hint system */}
+              {(q.hint || q.accept) && !state.answered && (
+                <div className="flex flex-col gap-2">
+                  {hintRevealed && getHintContent()?.map((hint, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="px-3 py-2 rounded-lg text-xs font-mono bg-warning/10 border border-warning/20 text-warning"
+                    >
+                      {hint}
+                    </motion.div>
+                  ))}
+                  {hintLevel < 3 && (
+                    <button
+                      type="button"
+                      onClick={revealNextHint}
+                      className="self-start px-3 py-1.5 rounded-lg text-xs font-mono text-muted-foreground border border-border hover:text-warning hover:border-warning/30 transition-all"
+                    >
+                      {hintLevel === 0 ? "🤔 Need a hint?" : `💡 More hints (${3 - hintLevel} left)`}
+                    </button>
+                  )}
+                </div>
+              )}
+
               <motion.button
                 type="submit"
                 whileHover={{ scale: 1.02 }}
@@ -203,7 +303,7 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
             </form>
           )}
 
-          {/* Show correct answer for typed after answering */}
+          {/* Show correct answer for typed/fill after answering */}
           {isTyped && state.answered && (
             <div className="flex flex-col gap-2">
               <div
