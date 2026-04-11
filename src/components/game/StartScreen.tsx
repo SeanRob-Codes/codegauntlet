@@ -1,19 +1,24 @@
 import { motion } from "framer-motion";
 import { LANGS, LANG_COLORS } from "@/data/questions";
+import type { GameMode } from "@/hooks/useGameState";
 
 interface StartScreenProps {
   selectedLangs: string[];
+  mode: GameMode;
   onToggleLang: (lang: string) => void;
   onSelectAll: () => void;
   onSelectNone: () => void;
+  onSetMode: (mode: GameMode) => void;
   onStart: () => void;
 }
 
 export default function StartScreen({
   selectedLangs,
+  mode,
   onToggleLang,
   onSelectAll,
   onSelectNone,
+  onSetMode,
   onStart,
 }: StartScreenProps) {
   return (
@@ -27,9 +32,38 @@ export default function StartScreen({
         Dev Skills Gauntlet
       </h1>
       <p className="text-muted-foreground text-sm mt-2 max-w-md mx-auto leading-relaxed">
-        Adaptive coding challenges across 10 topics.
+        Adaptive coding challenges across 40+ topics.
         <br />
-        Answer correctly → harder questions. 3 wrong → game over.
+        Answer correctly → harder questions. Beat the timer for bonus points.
+      </p>
+
+      {/* Mode selector */}
+      <div className="mt-6 flex justify-center gap-3">
+        <button
+          onClick={() => onSetMode("challenge")}
+          className={`px-4 py-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+            mode === "challenge"
+              ? "bg-primary/15 border-primary/50 text-primary box-glow-primary"
+              : "bg-secondary border-border text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          ⚔ Challenge Mode
+        </button>
+        <button
+          onClick={() => onSetMode("practice")}
+          className={`px-4 py-2 rounded-lg text-xs font-mono font-bold border transition-all ${
+            mode === "practice"
+              ? "bg-accent/15 border-accent/50 text-accent-foreground box-glow-accent"
+              : "bg-secondary border-border text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          📖 Practice Mode
+        </button>
+      </div>
+      <p className="text-[10px] text-muted-foreground mt-2 font-mono">
+        {mode === "challenge"
+          ? "3 lives · Timer · Bonus points for speed · Earn lives back"
+          : "No lives · No timer · Retry wrong answers · Focus on learning"}
       </p>
 
       <div className="text-left mt-8">
@@ -81,7 +115,7 @@ export default function StartScreen({
         disabled={selectedLangs.length === 0}
         className="mt-8 px-8 py-3 rounded-lg font-mono font-bold text-sm border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 hover:border-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed box-glow-primary"
       >
-        Start challenge →
+        {mode === "challenge" ? "Start challenge →" : "Start practice →"}
       </motion.button>
     </motion.div>
   );

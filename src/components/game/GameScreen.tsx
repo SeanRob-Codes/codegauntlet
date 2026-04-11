@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LANG_COLORS } from "@/data/questions";
 import type { GameState } from "@/hooks/useGameState";
+import TimerBar from "./TimerBar";
 
 interface GameScreenProps {
   state: GameState;
@@ -9,19 +10,31 @@ interface GameScreenProps {
   onAnswerTyped: () => void;
   onTypedChange: (val: string) => void;
   onNext: () => void;
+  onRetry: () => void;
 }
 
 const LEVEL_LABELS = ["", "Beginner", "Intermediate", "Advanced", "Expert"];
 
-export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChange, onNext }: GameScreenProps) {
+// Timer duration by level (must match useGameState)
+function getTimerDuration(level: number): number {
+  switch (level) {
+    case 1: return 30;
+    case 2: return 25;
+    case 3: return 20;
+    case 4: return 15;
+    default: return 30;
+  }
+}
+
+export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChange, onNext, onRetry }: GameScreenProps) {
   const q = state.currentQ;
   const inputRef = useRef<HTMLInputElement>(null);
   const isTyped = q?.type === "typed" || q?.type === "fill";
   const isFill = q?.type === "fill";
+  const isPractice = state.mode === "practice";
   const [hintRevealed, setHintRevealed] = useState(false);
-  const [hintLevel, setHintLevel] = useState(0); // 0=none, 1=hint text, 2=first letters, 3=length
+  const [hintLevel, setHintLevel] = useState(0);
 
-  // Reset hint state on new question
   useEffect(() => {
     setHintRevealed(false);
     setHintLevel(0);
@@ -37,6 +50,7 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
 
   const lc = LANG_COLORS[q.lang] || LANG_COLORS["Git"];
   const pct = Math.min((state.score / 20) * 100, 98);
+  const totalTime = getTimerDuration(q.level);
 
   const handleTypedSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,11 +68,9 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
     if (!q.accept || q.accept.length === 0) return null;
     const answer = q.accept[0];
     const hints: string[] = [];
-
     if (hintLevel >= 1 && q.hint) {
       hints.push(`💡 ${q.hint}`);
     } else if (hintLevel >= 1 && !q.hint) {
-      // If no hint text, skip to letter hint
       hints.push(`💡 Answer starts with "${answer.charAt(0).toUpperCase()}"`);
     }
     if (hintLevel >= 2) {
@@ -71,7 +83,6 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
     return hints;
   };
 
-  // For fill questions, render code with the blank highlighted
   const renderFillCode = (code: string) => {
     const parts = code.split("____");
     if (parts.length < 2) return <span>{code}</span>;
@@ -102,7 +113,7 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
         <h2 className="text-base font-mono font-bold text-foreground">
-          Dev Skills Gauntlet
+          {isPractice ? "📖 Practice" : "Dev Skills Gauntlet"}
         </h2>
         <div className="flex gap-2 items-center flex-wrap">
           <StatChip label="Score" value={state.score} />
@@ -117,20 +128,25 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
               <span className="font-bold text-warning">{state.streak}</span>
             </motion.div>
           )}
-          <div className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-secondary border border-border">
-            {[0, 1, 2].map((i) => (
-              <span
-                key={i}
-                className={`text-sm ${
-                  i < state.lives ? "text-destructive text-glow-destructive" : "text-muted-foreground/30"
-                }`}
-              >
-                {i < state.lives ? "♥" : "♡"}
-              </span>
-            ))}
-          </div>
+          {!isPractice && (
+            <div className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-secondary border border-border">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className={`text-sm ${
+                    i < state.lives ? "text-destructive text-glow-destructive" : "text-muted-foreground/30"
+                  }`}
+                >
+                  {i < state.lives ? "♥" : "♡"}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Timer */}
+      <TimerBar timeLeft={state.timeLeft} totalTime={totalTime} isPractice={isPractice} />
 
       {/* Progress */}
       <div className="h-1 bg-secondary rounded-full mb-5 overflow-hidden">
@@ -143,7 +159,7 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
         />
       </div>
 
-      {/* Level up banner */}
+      {/* Banners */}
       <AnimatePresence>
         {state.levelUpBanner && (
           <motion.div
@@ -153,6 +169,16 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
             className="text-center text-xs font-mono font-semibold py-2 px-4 mb-4 rounded-lg bg-primary/10 border border-primary/30 text-primary box-glow-primary"
           >
             ⬆ Level up! Questions are harder now.
+          </motion.div>
+        )}
+        {state.lifeRecovered && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="text-center text-xs font-mono font-semibold py-2 px-4 mb-4 rounded-lg bg-accent/10 border border-accent/30 text-accent-foreground"
+          >
+            💚 Life recovered! You answered correctly on your last life.
           </motion.div>
         )}
       </AnimatePresence>
@@ -188,7 +214,7 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
       {/* Question card */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={q.q}
+          key={q.q + (state.retryAvailable ? "" : String(state.answered))}
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -30 }}
@@ -197,7 +223,7 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
         >
           <p className="text-sm text-foreground leading-relaxed mb-4">{q.q}</p>
 
-          {/* Code block — fill type renders blanks inline */}
+          {/* Code block */}
           {q.code && !isFill && (
             <pre className="bg-background border border-border rounded-lg p-4 font-mono text-xs text-primary leading-relaxed mb-4 overflow-x-auto">
               {q.code}
@@ -209,7 +235,7 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
             </pre>
           )}
 
-          {/* Multiple choice answers */}
+          {/* Multiple choice */}
           {!isTyped && (
             <div className="flex flex-col gap-2">
               {state.shuffledOptions.map(({ o, i }) => {
@@ -218,17 +244,14 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
 
                 if (state.answered) {
                   if (i === q.answer) {
-                    btnClass +=
-                      " bg-primary/10 border-primary/50 text-primary box-glow-primary";
+                    btnClass += " bg-primary/10 border-primary/50 text-primary box-glow-primary";
                   } else if (i === state.chosen && !state.correct) {
-                    btnClass +=
-                      " bg-destructive/10 border-destructive/50 text-destructive box-glow-destructive";
+                    btnClass += " bg-destructive/10 border-destructive/50 text-destructive box-glow-destructive";
                   } else {
                     btnClass += " bg-secondary border-border text-muted-foreground opacity-50";
                   }
                 } else {
-                  btnClass +=
-                    " bg-secondary border-border text-secondary-foreground hover:bg-muted hover:border-muted-foreground/30 hover:text-foreground cursor-pointer";
+                  btnClass += " bg-secondary border-border text-secondary-foreground hover:bg-muted hover:border-muted-foreground/30 hover:text-foreground cursor-pointer";
                 }
 
                 return (
@@ -246,7 +269,7 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
             </div>
           )}
 
-          {/* Typed / Fill answer input */}
+          {/* Typed / Fill input */}
           {isTyped && !state.answered && (
             <form onSubmit={handleTypedSubmit} className="flex flex-col gap-3">
               <div className="relative">
@@ -266,8 +289,8 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
                 />
               </div>
 
-              {/* Hint system */}
-              {(q.hint || q.accept) && !state.answered && (
+              {/* Hints */}
+              {(q.hint || q.accept) && (
                 <div className="flex flex-col gap-2">
                   {hintRevealed && getHintContent()?.map((hint, idx) => (
                     <motion.div
@@ -303,7 +326,7 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
             </form>
           )}
 
-          {/* Show correct answer for typed/fill after answering */}
+          {/* Typed answer feedback */}
           {isTyped && state.answered && (
             <div className="flex flex-col gap-2">
               <div
@@ -325,7 +348,7 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
             </div>
           )}
 
-          {/* Feedback */}
+          {/* Feedback + bonus */}
           <AnimatePresence>
             {state.answered && (
               <motion.div
@@ -339,17 +362,34 @@ export default function GameScreen({ state, onAnswer, onAnswerTyped, onTypedChan
                       : "bg-destructive/10 border-destructive/30 text-destructive"
                   }`}
                 >
-                  {state.correct ? "✓ Correct! " : "✗ Not quite. "}
+                  {state.correct ? "✓ Correct! " : state.timeLeft <= 0 && state.chosen === -1 ? "⏰ Time's up! " : "✗ Not quite. "}
                   {q.explain}
+                  {state.correct && state.timerBonus > 0 && (
+                    <span className="ml-2 text-xs font-bold text-warning">
+                      ⚡ +{state.timerBonus} speed bonus!
+                    </span>
+                  )}
                 </div>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={onNext}
-                  className="mt-4 px-6 py-2.5 rounded-lg text-sm font-mono font-semibold border border-border bg-secondary text-foreground hover:bg-muted hover:border-muted-foreground/30 transition-all"
-                >
-                  {state.lives > 0 ? "Next question →" : "See results"}
-                </motion.button>
+                <div className="flex gap-2 mt-4">
+                  {state.retryAvailable && (
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={onRetry}
+                      className="px-6 py-2.5 rounded-lg text-sm font-mono font-semibold border border-accent/50 bg-accent/10 text-accent-foreground hover:bg-accent/20 transition-all"
+                    >
+                      🔄 Retry this question
+                    </motion.button>
+                  )}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={onNext}
+                    className="px-6 py-2.5 rounded-lg text-sm font-mono font-semibold border border-border bg-secondary text-foreground hover:bg-muted hover:border-muted-foreground/30 transition-all"
+                  >
+                    {!isPractice && state.lives <= 0 ? "See results" : "Next question →"}
+                  </motion.button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

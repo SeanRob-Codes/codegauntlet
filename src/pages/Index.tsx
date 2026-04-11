@@ -9,11 +9,13 @@ const Index = () => {
     toggleLang,
     selectAll,
     selectNone,
+    setMode,
     startGame,
     answerQuestion,
     answerTyped,
     setTypedAnswer,
     nextQuestion,
+    retryQuestion,
     restart,
   } = useGameState();
 
@@ -23,9 +25,11 @@ const Index = () => {
         {state.screen === "start" && (
           <StartScreen
             selectedLangs={state.selectedLangs}
+            mode={state.mode}
             onToggleLang={toggleLang}
             onSelectAll={selectAll}
             onSelectNone={selectNone}
+            onSetMode={setMode}
             onStart={startGame}
           />
         )}
@@ -36,6 +40,7 @@ const Index = () => {
             onAnswerTyped={answerTyped}
             onTypedChange={setTypedAnswer}
             onNext={nextQuestion}
+            onRetry={retryQuestion}
           />
         )}
         {state.screen === "gameover" && (

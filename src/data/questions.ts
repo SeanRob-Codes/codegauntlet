@@ -729,5 +729,50 @@ export const ALL_QUESTIONS: Question[] = [
   {lang:"DSA",level:2,q:"Complete the binary search comparison.",code:'if (arr[mid] ____ target) {\n  return mid;\n}',type:"fill",options:[],answer:0,accept:["===","==","===" ],hint:"Equality comparison operator",explain:"Binary search returns when the middle element equals the target."},
   {lang:"DSA",level:3,q:"Complete the recursive base case for factorial.",code:'function factorial(n) {\n  if (n ____ 1) return 1;\n  return n * factorial(n - 1);\n}',type:"fill",options:[],answer:0,accept:["<=","===","==","<= 1","=== 1","== 1","<"],hint:"When should recursion stop?",explain:"The base case stops recursion — factorial(0) = factorial(1) = 1."},
   {lang:"DSA",level:3,q:"Fill in the data structure used for BFS traversal.",code:'const ____ = [startNode];\nwhile (____.length > 0) {\n  const node = ____.shift();\n}',type:"fill",options:[],answer:0,accept:["queue","q"],hint:"FIFO data structure",explain:"BFS uses a queue — nodes are processed in the order they're discovered."},
+
+  // ===== MORE FILL-THE-BLANK: Multi-token code completion =====
+
+  // JavaScript - function bodies & loops
+  {lang:"JavaScript",level:3,q:"Complete the arrow function that doubles a number.",code:'const double = (n) => ____;',type:"fill",options:[],answer:0,accept:["n * 2","n*2","2 * n","2*n"],hint:"Multiply the parameter by 2",explain:"Arrow functions can have expression bodies: `(n) => n * 2`."},
+  {lang:"JavaScript",level:3,q:"Fill in the array method to keep only even numbers.",code:'const evens = nums.____(n => n % 2 === 0);',type:"fill",options:[],answer:0,accept:["filter"],hint:"This method creates a new array with elements that pass a test",explain:"`filter()` creates a new array with elements that pass the callback test."},
+  {lang:"JavaScript",level:3,q:"Complete the destructuring assignment.",code:'const { name, ____ } = person;',type:"fill",options:[],answer:0,accept:["age","email","id"],hint:"Pick any common property name",explain:"Object destructuring extracts properties into variables."},
+  {lang:"JavaScript",level:4,q:"Complete the Promise chain error handler.",code:'fetch(url)\n  .then(res => res.json())\n  .____((err) => console.error(err));',type:"fill",options:[],answer:0,accept:["catch"],hint:"The method that handles rejected promises",explain:"`.catch()` handles errors in a Promise chain."},
+  {lang:"JavaScript",level:4,q:"Complete the async/await function body.",code:'async function getData() {\n  const res = ____ fetch("/api/data");\n  return res.json();\n}',type:"fill",options:[],answer:0,accept:["await","const res = await"],hint:"Keyword that pauses until the promise resolves",explain:"`await` pauses execution until the Promise resolves."},
+
+  // Python - function bodies & loops
+  {lang:"Python",level:3,q:"Complete the list comprehension to square numbers.",code:'squares = [____ for x in range(10)]',type:"fill",options:[],answer:0,accept:["x**2","x*x","x ** 2","x * x"],hint:"x raised to the power of 2",explain:"List comprehensions: `[expression for item in iterable]`."},
+  {lang:"Python",level:3,q:"Complete the function to return the max of two numbers.",code:'def max_of_two(a, b):\n    return a if ____ else b',type:"fill",options:[],answer:0,accept:["a > b","a >= b","a>b","a>=b"],hint:"Compare a and b",explain:"Ternary expression: `a if condition else b`."},
+  {lang:"Python",level:4,q:"Complete the decorator syntax.",code:'____\ndef my_view(request):\n    return render(request, "home.html")',type:"fill",options:[],answer:0,accept:["@login_required","@app.route('/')","@staticmethod","@classmethod"],hint:"Decorators start with the @ symbol",explain:"Decorators use `@decorator_name` syntax above the function definition."},
+  {lang:"Python",level:3,q:"Complete the dictionary comprehension.",code:'squares = {x: ____ for x in range(5)}',type:"fill",options:[],answer:0,accept:["x**2","x*x","x ** 2","x * x"],hint:"The value should be x squared",explain:"Dict comprehension: `{key: value for item in iterable}`."},
+  {lang:"Python",level:4,q:"Fill in the method to handle exceptions.",code:'try:\n    result = 10 / 0\n____ ZeroDivisionError:\n    print("Cannot divide by zero")',type:"fill",options:[],answer:0,accept:["except"],hint:"The keyword that catches exceptions",explain:"`except` catches and handles specific exceptions in Python."},
+
+  // Java - function bodies
+  {lang:"Java",level:3,q:"Complete the for-each loop.",code:'for (String item ____ list) {\n    System.out.println(item);\n}',type:"fill",options:[],answer:0,accept:[":","in"],hint:"Single character separator in enhanced for loop",explain:"Enhanced for loop uses `:` — `for (Type var : collection)`."},
+  {lang:"Java",level:3,q:"Complete the method signature to return an integer.",code:'public ____ add(int a, int b) {\n    return a + b;\n}',type:"fill",options:[],answer:0,accept:["int","Integer"],hint:"The return type for whole numbers",explain:"Methods must declare their return type — `int` for integers."},
+  {lang:"Java",level:4,q:"Fill in the interface implementation keyword.",code:'public class Dog ____ Animal {\n    public void speak() { }\n}',type:"fill",options:[],answer:0,accept:["implements","extends"],hint:"Keyword for implementing an interface or extending a class",explain:"`implements` for interfaces, `extends` for class inheritance."},
+  {lang:"Java",level:4,q:"Complete the lambda expression.",code:'list.forEach(item ____ System.out.println(item));',type:"fill",options:[],answer:0,accept:["->"],hint:"The arrow operator in Java lambdas",explain:"`->` separates parameters from the lambda body."},
+
+  // SQL - complex queries
+  {lang:"SQL",level:3,q:"Complete the JOIN clause.",code:'SELECT * FROM orders\n____ JOIN customers\nON orders.customer_id = customers.id;',type:"fill",options:[],answer:0,accept:["INNER","LEFT","RIGHT","FULL","inner","left","right"],hint:"Type of join — INNER is most common",explain:"JOIN types: INNER (matching rows), LEFT (all left + matching right), etc."},
+  {lang:"SQL",level:3,q:"Fill in the aggregate function to count rows.",code:'SELECT department, ____(*)\nFROM employees\nGROUP BY department;',type:"fill",options:[],answer:0,accept:["COUNT","count"],hint:"Counts the number of rows",explain:"`COUNT(*)` counts all rows in each group."},
+  {lang:"SQL",level:4,q:"Complete the subquery.",code:'SELECT name FROM employees\nWHERE salary > (\n  SELECT ____(salary) FROM employees\n);',type:"fill",options:[],answer:0,accept:["AVG","avg"],hint:"The aggregate function for average",explain:"`AVG()` calculates the average value — this finds employees earning above average."},
+
+  // C - systems programming
+  {lang:"C",level:3,q:"Complete the pointer declaration.",code:'int x = 42;\nint ____ p = &x;',type:"fill",options:[],answer:0,accept:["*","*p"],hint:"The symbol that declares a pointer",explain:"`*` declares a pointer variable — `int *p` points to an integer."},
+  {lang:"C",level:3,q:"Fill in the memory allocation function.",code:'int *arr = (int *)____(10 * sizeof(int));',type:"fill",options:[],answer:0,accept:["malloc","calloc"],hint:"Memory allocation function from stdlib.h",explain:"`malloc()` allocates dynamic memory on the heap."},
+
+  // TypeScript
+  {lang:"TypeScript",level:3,q:"Complete the generic function signature.",code:'function identity______(arg: T): T {\n    return arg;\n}',type:"fill",options:[],answer:0,accept:["<T>"],hint:"Angle brackets with a type parameter",explain:"Generics use `<T>` to create reusable type-safe functions."},
+  {lang:"TypeScript",level:3,q:"Fill in the type for an async function return.",code:'async function fetchData(): ____<string> {\n    return "data";\n}',type:"fill",options:[],answer:0,accept:["Promise"],hint:"Async functions always return this wrapper type",explain:"Async functions return `Promise<T>` where T is the resolved value type."},
+
+  // React
+  {lang:"React",level:3,q:"Complete the hook to run code on mount.",code:'____(() => {\n  fetchData();\n}, []);',type:"fill",options:[],answer:0,accept:["useEffect"],hint:"The hook for side effects",explain:"`useEffect` with an empty dependency array runs once on mount."},
+  {lang:"React",level:3,q:"Fill in the hook for state management.",code:'const [count, setCount] = ____(0);',type:"fill",options:[],answer:0,accept:["useState"],hint:"The most basic React hook for component state",explain:"`useState` returns a state variable and its setter function."},
+  {lang:"React",level:4,q:"Complete the memoization hook.",code:'const expensiveValue = ____(() => {\n  return computeExpensive(data);\n}, [data]);',type:"fill",options:[],answer:0,accept:["useMemo"],hint:"Hook that memoizes a computed value",explain:"`useMemo` caches expensive computations and recalculates only when dependencies change."},
+
+  // DSA - algorithm implementations
+  {lang:"DSA",level:3,q:"Complete the swap in bubble sort.",code:'if (arr[j] > arr[j + 1]) {\n  [arr[j], arr[j+1]] = [____, ____];\n}',type:"fill",options:[],answer:0,accept:["arr[j+1], arr[j]","arr[j + 1], arr[j]"],hint:"Swap the two elements — reverse order",explain:"Destructuring swap: `[a, b] = [b, a]` swaps without a temp variable."},
+  {lang:"DSA",level:4,q:"Complete the merge step of merge sort.",code:'if (left[i] ____ right[j]) {\n  result.push(left[i]);\n  i++;\n} else {\n  result.push(right[j]);\n  j++;\n}',type:"fill",options:[],answer:0,accept:["<=","<"],hint:"Compare left and right elements",explain:"Merge sort compares elements from both halves, taking the smaller one."},
+  {lang:"DSA",level:4,q:"Fill in the hash function operation.",code:'function hash(key, size) {\n  return key ____ size;\n}',type:"fill",options:[],answer:0,accept:["%","% size"],hint:"The modulo operator ensures the index fits in the array",explain:"`key % size` maps any key to a valid array index using the modulo operator."},
 ];
 
