@@ -113,7 +113,7 @@ export function useGameState() {
         usedQIds,
         levelUpBanner: false,
         currentQ: q,
-        shuffledOptions: q.type === "typed" ? [] : shuffle(q.options.map((o, i) => ({ o, i }))),
+        shuffledOptions: (q.type === "typed" || q.type === "fill") ? [] : shuffle(q.options.map((o, i) => ({ o, i }))),
       };
     });
   }, []);
@@ -200,7 +200,7 @@ export function useGameState() {
         typedAnswer: "",
         levelUpBanner: false,
         currentQ: q,
-        shuffledOptions: q.type === "typed" ? [] : shuffle(q.options.map((o, i) => ({ o, i }))),
+        shuffledOptions: (q.type === "typed" || q.type === "fill") ? [] : shuffle(q.options.map((o, i) => ({ o, i }))),
       };
     });
   }, []);

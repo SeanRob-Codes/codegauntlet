@@ -1,4 +1,4 @@
-export type QuestionType = "choice" | "typed";
+export type QuestionType = "choice" | "typed" | "fill";
 
 export interface Question {
   lang: string;
@@ -8,7 +8,8 @@ export interface Question {
   type?: QuestionType; // defaults to "choice"
   options: string[];   // used for "choice" type
   answer: number;      // used for "choice" type
-  accept?: string[];   // accepted answers for "typed" type (case-insensitive, trimmed)
+  accept?: string[];   // accepted answers for "typed" and "fill" types (case-insensitive, trimmed)
+  hint?: string;       // optional hint for typed/fill questions
   explain: string;
 }
 
@@ -631,5 +632,102 @@ export const ALL_QUESTIONS: Question[] = [
   {lang:"DSA",level:3,q:"What algorithm finds the shortest path in a weighted graph with non-negative edges?",code:null,type:"typed",options:[],answer:0,accept:["dijkstra","dijkstra's","dijkstras","dijkstra's algorithm"],explain:"Dijkstra's algorithm uses a priority queue to greedily find shortest paths."},
   {lang:"DSA",level:4,q:"What is the time complexity of BFS/DFS on a graph with V vertices and E edges?",code:null,type:"typed",options:[],answer:0,accept:["O(V+E)","O(V + E)","o(v+e)","V+E"],explain:"Both BFS and DFS visit each vertex and edge once — O(V + E)."},
   {lang:"DSA",level:4,q:"What is the time complexity of naive recursive Fibonacci?",code:"fib(n) = fib(n-1) + fib(n-2)",type:"typed",options:[],answer:0,accept:["O(2^n)","O(2^N)","o(2^n)","2^n","exponential"],explain:"Without memoization, each call branches into two — exponential O(2^n) growth."},
+
+  // ===== FILL-IN-THE-BLANK QUESTIONS (type: "fill") =====
+  // Code has ____ where the user must type what's missing
+
+  // Java fill
+  {lang:"Java",level:1,q:"Complete the statement to print 'Hello World' to the console.",code:'System.____("Hello World");',type:"fill",options:[],answer:0,accept:["out.println","out.print"],hint:"It's a method on the 'out' object of System",explain:"`System.out.println()` prints text to the console with a newline."},
+  {lang:"Java",level:2,q:"Complete the main method signature.",code:'public static void ____(String[] args) {',type:"fill",options:[],answer:0,accept:["main"],hint:"Every Java program starts from this method",explain:"`main` is the entry point for Java applications."},
+  {lang:"Java",level:2,q:"Fill in the keyword to create a new ArrayList.",code:'ArrayList<String> list = ____ ArrayList<>();',type:"fill",options:[],answer:0,accept:["new"],hint:"This keyword creates object instances",explain:"`new` instantiates a class and calls its constructor."},
+  {lang:"Java",level:3,q:"Complete the loop to iterate from 0 to 9.",code:'for (int i = 0; i < 10; ____) {',type:"fill",options:[],answer:0,accept:["i++","i+=1","i = i + 1","++i"],hint:"How do you increment i by 1?",explain:"`i++` increments i by 1 each iteration."},
+  {lang:"Java",level:3,q:"Fill in the keyword to handle an exception.",code:'try {\n  riskyMethod();\n} ____ (Exception e) {\n  e.printStackTrace();\n}',type:"fill",options:[],answer:0,accept:["catch"],hint:"This keyword follows try",explain:"`catch` handles exceptions thrown in the try block."},
+
+  // JavaScript fill
+  {lang:"JavaScript",level:1,q:"Complete the code to log 'Hello' to the console.",code:'____.log("Hello");',type:"fill",options:[],answer:0,accept:["console"],hint:"This object provides debugging methods in the browser",explain:"`console.log()` outputs messages to the browser console."},
+  {lang:"JavaScript",level:1,q:"Fill in the keyword to declare a constant variable.",code:'____ PI = 3.14159;',type:"fill",options:[],answer:0,accept:["const"],hint:"This keyword prevents reassignment",explain:"`const` declares a variable that cannot be reassigned."},
+  {lang:"JavaScript",level:2,q:"Complete the arrow function syntax.",code:'const add = (a, b) ____ a + b;',type:"fill",options:[],answer:0,accept:["=>","=> {return","=>{ return"],hint:"Two characters that make an arrow function",explain:"`=>` is the arrow function syntax: `(params) => expression`."},
+  {lang:"JavaScript",level:2,q:"Fill in the method to convert a JSON object to a string.",code:'const str = JSON.____(myObject);',type:"fill",options:[],answer:0,accept:["stringify"],hint:"The opposite of JSON.parse()",explain:"`JSON.stringify()` converts a JavaScript object to a JSON string."},
+  {lang:"JavaScript",level:3,q:"Complete the code to destructure 'name' from an object.",code:'const { ____ } = person;',type:"fill",options:[],answer:0,accept:["name"],hint:"Extract the 'name' property",explain:"Destructuring extracts properties from objects: `const { name } = person`."},
+  {lang:"JavaScript",level:3,q:"Fill in the method to filter array elements.",code:'const evens = numbers.____(n => n % 2 === 0);',type:"fill",options:[],answer:0,accept:["filter"],hint:"Returns a new array with elements that pass a test",explain:"`.filter()` creates a new array with elements that pass the callback's test."},
+  {lang:"JavaScript",level:4,q:"Complete the async function declaration.",code:'____ function fetchData() {\n  const res = await fetch(url);\n  return res.json();\n}',type:"fill",options:[],answer:0,accept:["async"],hint:"This keyword enables the use of 'await' inside",explain:"`async` marks a function as asynchronous, allowing `await` inside it."},
+
+  // Python fill
+  {lang:"Python",level:1,q:"Complete the code to print 'Hello World'.",code:'____("Hello World")',type:"fill",options:[],answer:0,accept:["print"],hint:"The most basic output function",explain:"`print()` outputs text to the console in Python."},
+  {lang:"Python",level:1,q:"Fill in the keyword to define a function.",code:'____ greet(name):\n  return f"Hello, {name}"',type:"fill",options:[],answer:0,accept:["def"],hint:"Short for 'define'",explain:"`def` defines a function in Python."},
+  {lang:"Python",level:2,q:"Complete the list comprehension.",code:'squares = [x**2 ____ x in range(10)]',type:"fill",options:[],answer:0,accept:["for"],hint:"Iteration keyword",explain:"List comprehensions use `for` to iterate: `[expr for item in iterable]`."},
+  {lang:"Python",level:2,q:"Fill in the keyword to import a module.",code:'____ random\nprint(random.randint(1, 10))',type:"fill",options:[],answer:0,accept:["import"],hint:"How you bring in external modules",explain:"`import` loads a module into the current namespace."},
+  {lang:"Python",level:3,q:"Complete the class definition with inheritance.",code:'class Dog(____):\n  def speak(self):\n    return "Woof!"',type:"fill",options:[],answer:0,accept:["Animal","object"],hint:"The parent class name goes in parentheses",explain:"Classes inherit by placing the parent class in parentheses: `class Child(Parent)`."},
+  {lang:"Python",level:3,q:"Fill in the method to open a file for reading.",code:'with ____(\"data.txt\", \"r\") as f:\n  content = f.read()',type:"fill",options:[],answer:0,accept:["open"],hint:"The built-in function for file I/O",explain:"`open()` returns a file object. Using `with` ensures it's properly closed."},
+
+  // HTML fill
+  {lang:"HTML",level:1,q:"Complete the tag to create a clickable link.",code:'<____ href="https://example.com">Click me</__>',type:"fill",options:[],answer:0,accept:["a"],hint:"Single letter, stands for 'anchor'",explain:"The `<a>` (anchor) tag creates hyperlinks."},
+  {lang:"HTML",level:1,q:"Fill in the attribute to set an image source.",code:'<img ____="photo.jpg" alt="A photo">',type:"fill",options:[],answer:0,accept:["src"],hint:"Short for 'source'",explain:"The `src` attribute specifies the URL/path of an image."},
+  {lang:"HTML",level:2,q:"Complete the tag for a text input field.",code:'<____ type="text" placeholder="Enter name">',type:"fill",options:[],answer:0,accept:["input"],hint:"A self-closing form element",explain:"The `<input>` tag creates interactive form controls."},
+  {lang:"HTML",level:2,q:"Fill in the attribute to make an input required.",code:'<input type="email" ____>',type:"fill",options:[],answer:0,accept:["required"],hint:"Boolean attribute — the form won't submit without this field",explain:"The `required` attribute prevents form submission if the field is empty."},
+
+  // CSS fill
+  {lang:"CSS",level:1,q:"Complete the property to change text color.",code:'h1 {\n  ____: red;\n}',type:"fill",options:[],answer:0,accept:["color"],hint:"The property name is just... the color word",explain:"`color` sets the text color of an element."},
+  {lang:"CSS",level:2,q:"Fill in the property to make an element a flex container.",code:'.container {\n  ____: flex;\n}',type:"fill",options:[],answer:0,accept:["display"],hint:"This property controls how an element is rendered",explain:"`display: flex` turns an element into a flexbox container."},
+  {lang:"CSS",level:2,q:"Complete the property to center flex items horizontally.",code:'.container {\n  display: flex;\n  ____: center;\n}',type:"fill",options:[],answer:0,accept:["justify-content"],hint:"This property aligns items along the main axis",explain:"`justify-content: center` centers items along the main (horizontal) axis."},
+  {lang:"CSS",level:3,q:"Fill in the value to make an element take full viewport height.",code:'.hero {\n  height: ____;\n}',type:"fill",options:[],answer:0,accept:["100vh","100%"],hint:"'vh' stands for viewport height",explain:"`100vh` makes an element the full height of the browser viewport."},
+
+  // SQL fill
+  {lang:"SQL",level:1,q:"Complete the query to select all columns from a table.",code:'____ * FROM users;',type:"fill",options:[],answer:0,accept:["SELECT","select"],hint:"The keyword that retrieves data",explain:"`SELECT *` retrieves all columns from the specified table."},
+  {lang:"SQL",level:2,q:"Fill in the clause to filter results.",code:'SELECT * FROM orders\n____ total > 100;',type:"fill",options:[],answer:0,accept:["WHERE","where"],hint:"This clause specifies conditions",explain:"`WHERE` filters rows based on a condition."},
+  {lang:"SQL",level:2,q:"Complete the statement to add a new row.",code:'____ INTO users (name, email)\nVALUES (\"Alice\", \"alice@mail.com\");',type:"fill",options:[],answer:0,accept:["INSERT","insert"],hint:"The opposite of DELETE",explain:"`INSERT INTO` adds a new row to a table."},
+  {lang:"SQL",level:3,q:"Fill in the join type that returns all rows from both tables.",code:'SELECT * FROM a\n____ JOIN b ON a.id = b.a_id;',type:"fill",options:[],answer:0,accept:["FULL OUTER","FULL","full outer","full"],hint:"Combines LEFT and RIGHT joins",explain:"`FULL OUTER JOIN` returns all rows from both tables, with NULLs where there's no match."},
+
+  // C fill
+  {lang:"C",level:1,q:"Complete the include statement for standard I/O.",code:'#include <____>',type:"fill",options:[],answer:0,accept:["stdio.h"],hint:"Standard Input/Output header",explain:"`stdio.h` provides printf, scanf, and other I/O functions."},
+  {lang:"C",level:2,q:"Fill in the format specifier to print an integer.",code:'printf("Value: ____\\n", num);',type:"fill",options:[],answer:0,accept:["%d","%i"],hint:"Starts with % followed by a letter for decimal",explain:"`%d` or `%i` is the format specifier for integers in printf."},
+  {lang:"C",level:3,q:"Complete the pointer declaration.",code:'int x = 10;\nint ____ = &x;',type:"fill",options:[],answer:0,accept:["*p","*ptr","*pointer"],hint:"Use the dereference operator before the name",explain:"`int *p = &x` declares a pointer p that stores the address of x."},
+
+  // C++ fill
+  {lang:"C++",level:1,q:"Complete the output statement.",code:'____ << "Hello World" << endl;',type:"fill",options:[],answer:0,accept:["cout","std::cout"],hint:"The standard output stream object",explain:"`cout` (character output) prints to the console in C++."},
+  {lang:"C++",level:2,q:"Fill in the keyword to get user input.",code:'int age;\n____ >> age;',type:"fill",options:[],answer:0,accept:["cin","std::cin"],hint:"The standard input stream object",explain:"`cin` (character input) reads from the keyboard in C++."},
+
+  // React fill
+  {lang:"React",level:2,q:"Complete the hook to manage state.",code:'const [count, setCount] = ____<number>(0);',type:"fill",options:[],answer:0,accept:["useState","React.useState"],hint:"The most common React hook for local state",explain:"`useState` creates a state variable and its setter function."},
+  {lang:"React",level:2,q:"Fill in the hook to run code after render.",code:'____(( ) => {\n  document.title = `Count: ${count}`;\n}, [count]);',type:"fill",options:[],answer:0,accept:["useEffect","React.useEffect"],hint:"Runs side effects after rendering",explain:"`useEffect` runs side effects like API calls or DOM updates after render."},
+  {lang:"React",level:3,q:"Complete the JSX to conditionally render a component.",code:'{isLoggedIn ____ <Dashboard /> }',type:"fill",options:[],answer:0,accept:["&&","?"],hint:"A logical operator that short-circuits",explain:"`&&` short-circuit renders: if left is true, render right side."},
+
+  // TypeScript fill
+  {lang:"TypeScript",level:2,q:"Complete the type annotation for a function parameter.",code:'function greet(name: ____): string {\n  return `Hello, ${name}`;\n}',type:"fill",options:[],answer:0,accept:["string"],hint:"The most basic text type",explain:"`string` is the TypeScript type for text values."},
+  {lang:"TypeScript",level:3,q:"Fill in the generic type parameter.",code:'function identity<____>(arg: T): T {\n  return arg;\n}',type:"fill",options:[],answer:0,accept:["T"],hint:"Convention uses a single uppercase letter",explain:"`T` is the conventional generic type parameter name."},
+
+  // Git fill
+  {lang:"Git",level:1,q:"Complete the command to initialize a new repository.",code:'git ____',type:"fill",options:[],answer:0,accept:["init"],hint:"Short for 'initialize'",explain:"`git init` creates a new Git repository in the current directory."},
+  {lang:"Git",level:2,q:"Fill in the command to create a new branch.",code:'git ____ feature-login',type:"fill",options:[],answer:0,accept:["branch","checkout -b","switch -c"],hint:"The command to create/list branches",explain:"`git branch <name>` creates a new branch."},
+  {lang:"Git",level:2,q:"Complete the command to save staged changes.",code:'git ____ -m "Add login feature"',type:"fill",options:[],answer:0,accept:["commit"],hint:"Records a snapshot of staged changes",explain:"`git commit -m` saves staged changes with a message."},
+
+  // Rust fill
+  {lang:"Rust",level:1,q:"Complete the code to print to the console.",code:'____("Hello, world!");',type:"fill",options:[],answer:0,accept:["println!"],hint:"A macro (ends with !) for printing with newline",explain:"`println!` is a macro that prints formatted text with a newline."},
+  {lang:"Rust",level:2,q:"Fill in the keyword to make a variable mutable.",code:'let ____ x = 5;\nx = 10;',type:"fill",options:[],answer:0,accept:["mut"],hint:"Short for 'mutable'",explain:"`mut` allows a variable to be changed after declaration."},
+
+  // Go fill
+  {lang:"Go",level:1,q:"Complete the function declaration keyword.",code:'____ main() {\n  fmt.Println("Hello")\n}',type:"fill",options:[],answer:0,accept:["func"],hint:"Short for 'function'",explain:"`func` declares a function in Go."},
+  {lang:"Go",level:2,q:"Fill in the package for the main entry point.",code:'package ____\n\nimport "fmt"',type:"fill",options:[],answer:0,accept:["main"],hint:"Every executable Go program starts here",explain:"`package main` defines the entry point package for a Go executable."},
+
+  // Kotlin fill
+  {lang:"Kotlin",level:1,q:"Complete the function declaration.",code:'____ main() {\n  println("Hello")\n}',type:"fill",options:[],answer:0,accept:["fun"],hint:"Short for 'function' in Kotlin",explain:"`fun` declares a function in Kotlin."},
+  {lang:"Kotlin",level:2,q:"Fill in the keyword for a null-safe call.",code:'val length = name____length',type:"fill",options:[],answer:0,accept:["?.","?.",".?"],hint:"Two characters: question mark and dot",explain:"`?.` is the safe call operator — returns null instead of throwing if the object is null."},
+
+  // Swift fill
+  {lang:"Swift",level:1,q:"Complete the print statement.",code:'____("Hello, World!")',type:"fill",options:[],answer:0,accept:["print"],hint:"The simplest output function",explain:"`print()` outputs text to the console in Swift."},
+  {lang:"Swift",level:2,q:"Fill in the keyword to declare a variable.",code:'____ name = "Alice"',type:"fill",options:[],answer:0,accept:["var","let"],hint:"'var' for mutable, 'let' for immutable",explain:"`var` declares a mutable variable, `let` declares an immutable constant."},
+
+  // PHP fill
+  {lang:"PHP",level:1,q:"Complete the opening PHP tag.",code:'____\necho "Hello World";\n?>',type:"fill",options:[],answer:0,accept:["<?php"],hint:"Less-than, question mark, then the language name",explain:"`<?php` opens a PHP code block."},
+  {lang:"PHP",level:2,q:"Fill in the function to output text.",code:'____ "Hello World";',type:"fill",options:[],answer:0,accept:["echo","print"],hint:"The most common PHP output statement",explain:"`echo` outputs one or more strings in PHP."},
+
+  // Node.js fill
+  {lang:"Node.js",level:2,q:"Complete the code to import a module.",code:'const fs = ____("fs");',type:"fill",options:[],answer:0,accept:["require"],hint:"The CommonJS import function",explain:"`require()` imports modules in Node.js (CommonJS)."},
+  {lang:"Node.js",level:2,q:"Fill in the method to create an HTTP server.",code:'const server = http.____((req, res) => {\n  res.end("Hello");\n});',type:"fill",options:[],answer:0,accept:["createServer"],hint:"Method name describes what it does — creates a server",explain:"`http.createServer()` creates an HTTP server that handles requests."},
+
+  // DSA fill
+  {lang:"DSA",level:2,q:"Complete the binary search comparison.",code:'if (arr[mid] ____ target) {\n  return mid;\n}',type:"fill",options:[],answer:0,accept:["===","==","===" ],hint:"Equality comparison operator",explain:"Binary search returns when the middle element equals the target."},
+  {lang:"DSA",level:3,q:"Complete the recursive base case for factorial.",code:'function factorial(n) {\n  if (n ____ 1) return 1;\n  return n * factorial(n - 1);\n}',type:"fill",options:[],answer:0,accept:["<=","===","==","<= 1","=== 1","== 1","<"],hint:"When should recursion stop?",explain:"The base case stops recursion — factorial(0) = factorial(1) = 1."},
+  {lang:"DSA",level:3,q:"Fill in the data structure used for BFS traversal.",code:'const ____ = [startNode];\nwhile (____.length > 0) {\n  const node = ____.shift();\n}',type:"fill",options:[],answer:0,accept:["queue","q"],hint:"FIFO data structure",explain:"BFS uses a queue — nodes are processed in the order they're discovered."},
 ];
 
