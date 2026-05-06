@@ -1,5 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { ALL_QUESTIONS, LANGS, type Question } from "@/data/questions";
+import {
+  recordWrong,
+  recordCorrect,
+  recordHintUsed,
+  getDueQids,
+  getFlaggedTopics,
+} from "@/lib/srs";
 
 export type Screen = "start" | "game" | "gameover";
 export type GameMode = "challenge" | "practice";
@@ -25,7 +32,13 @@ export interface GameState {
   lifeRecovered: boolean;
   timeLeft: number;
   timerBonus: number;
-  retryAvailable: boolean; // practice mode retry
+  retryAvailable: boolean;
+  hintsUsed: number;        // hints used on the current question
+  hintPenalty: number;      // total points deducted from this question
+  awaitingExplain: boolean; // explain-back prompt active
+  explainText: string;
+  explainAccepted: boolean | null;
+  srsResurfaced: boolean;   // current question came from SRS queue
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -37,27 +50,47 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function getQId(q: Question): string {
+export function getQId(q: Question): string {
   return `${q.lang}::${q.q}`;
 }
 
-function pickQuestion(selectedLangs: string[], level: number, usedQIds: Set<string>): Question {
-  let pool = ALL_QUESTIONS.filter(
-    (q) =>
-      selectedLangs.includes(q.lang) &&
-      q.level <= Math.min(level, 4) &&
-      !usedQIds.has(getQId(q))
-  );
+function pickQuestion(
+  selectedLangs: string[],
+  level: number,
+  usedQIds: Set<string>,
+): { q: Question; resurfaced: boolean } {
+  // 1. SRS due — 40% chance
+  const dueQids = getDueQids();
+  const dueInPool = dueQids
+    .map((id) => ALL_QUESTIONS.find((q) => getQId(q) === id))
+    .filter((q): q is Question => !!q && selectedLangs.includes(q.lang) && !usedQIds.has(getQId(q)));
+  if (dueInPool.length > 0 && Math.random() < 0.4) {
+    return { q: dueInPool[0], resurfaced: true };
+  }
+
+  // 2. Flagged topic boost — 30% chance bias toward flagged langs
+  const flagged = getFlaggedTopics();
+  const flaggedLangs = Object.keys(flagged).filter((l) => selectedLangs.includes(l));
+  let pool: Question[] = [];
+  if (flaggedLangs.length > 0 && Math.random() < 0.3) {
+    pool = ALL_QUESTIONS.filter(
+      (q) => flaggedLangs.includes(q.lang) && q.level <= Math.min(level, 4) && !usedQIds.has(getQId(q)),
+    );
+  }
+  if (!pool.length) {
+    pool = ALL_QUESTIONS.filter(
+      (q) => selectedLangs.includes(q.lang) && q.level <= Math.min(level, 4) && !usedQIds.has(getQId(q)),
+    );
+  }
   if (!pool.length) {
     usedQIds.clear();
     pool = ALL_QUESTIONS.filter(
-      (q) => selectedLangs.includes(q.lang) && q.level <= Math.min(level, 4)
+      (q) => selectedLangs.includes(q.lang) && q.level <= Math.min(level, 4),
     );
   }
-  return pool[Math.floor(Math.random() * pool.length)];
+  return { q: pool[Math.floor(Math.random() * pool.length)], resurfaced: false };
 }
 
-// Timer duration based on question level (seconds)
 function getTimerDuration(level: number): number {
   switch (level) {
     case 1: return 30;
@@ -68,13 +101,26 @@ function getTimerDuration(level: number): number {
   }
 }
 
-// Bonus points based on remaining time
 function calcTimerBonus(timeLeft: number, totalTime: number): number {
   const ratio = timeLeft / totalTime;
-  if (ratio > 0.75) return 3; // super fast
-  if (ratio > 0.5) return 2;  // fast
-  if (ratio > 0.25) return 1; // decent
+  if (ratio > 0.75) return 3;
+  if (ratio > 0.5) return 2;
+  if (ratio > 0.25) return 1;
   return 0;
+}
+
+function validatePatterns(answer: string, mustMatch: string[] = [], mustNotMatch: string[] = []): boolean {
+  for (const p of mustMatch) {
+    try {
+      if (!new RegExp(p, "im").test(answer)) return false;
+    } catch { return false; }
+  }
+  for (const p of mustNotMatch) {
+    try {
+      if (new RegExp(p, "im").test(answer)) return false;
+    } catch {}
+  }
+  return true;
 }
 
 const initialState: GameState = {
@@ -99,31 +145,40 @@ const initialState: GameState = {
   timeLeft: 30,
   timerBonus: 0,
   retryAvailable: false,
+  hintsUsed: 0,
+  hintPenalty: 0,
+  awaitingExplain: false,
+  explainText: "",
+  explainAccepted: null,
+  srsResurfaced: false,
 };
+
+function isFreeform(q: Question | null): boolean {
+  return !!q && (q.type === "typed" || q.type === "fill" || q.type === "scratch" || q.type === "bugfix");
+}
 
 export function useGameState() {
   const [state, setState] = useState<GameState>(initialState);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Clear timer on unmount
   useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, []);
 
-  // Timer tick effect
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
 
-    if (state.screen === "game" && !state.answered && state.currentQ && state.mode === "challenge") {
+    // No timer for scratch/bugfix — they need thinking time
+    const noTimerType = state.currentQ?.type === "scratch" || state.currentQ?.type === "bugfix";
+
+    if (state.screen === "game" && !state.answered && state.currentQ && state.mode === "challenge" && !noTimerType && !state.awaitingExplain) {
       timerRef.current = setInterval(() => {
         setState((s) => {
           if (s.answered || s.timeLeft <= 0) {
             if (timerRef.current) clearInterval(timerRef.current);
-            if (s.timeLeft <= 0 && !s.answered) {
-              // Time's up - auto fail
+            if (s.timeLeft <= 0 && !s.answered && s.currentQ) {
               const newLives = s.lives - 1;
+              recordWrong(getQId(s.currentQ), s.currentQ.lang, s.currentQ.q, "(timeout)", s.currentQ.accept?.[0] || s.currentQ.solution || "");
               return {
                 ...s,
                 answered: true,
@@ -144,10 +199,8 @@ export function useGameState() {
       }, 1000);
     }
 
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [state.screen, state.answered, state.currentQ, state.mode]);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [state.screen, state.answered, state.currentQ, state.mode, state.awaitingExplain]);
 
   const toggleLang = useCallback((lang: string) => {
     setState((s) => {
@@ -159,25 +212,16 @@ export function useGameState() {
     });
   }, []);
 
-  const selectAll = useCallback(() => {
-    setState((s) => ({ ...s, selectedLangs: [...LANGS] }));
-  }, []);
-
-  const selectNone = useCallback(() => {
-    setState((s) => ({ ...s, selectedLangs: [] }));
-  }, []);
-
-  const setMode = useCallback((mode: GameMode) => {
-    setState((s) => ({ ...s, mode }));
-  }, []);
+  const selectAll = useCallback(() => setState((s) => ({ ...s, selectedLangs: [...LANGS] })), []);
+  const selectNone = useCallback(() => setState((s) => ({ ...s, selectedLangs: [] })), []);
+  const setMode = useCallback((mode: GameMode) => setState((s) => ({ ...s, mode })), []);
 
   const startGame = useCallback(() => {
     setState((s) => {
       if (!s.selectedLangs.length) return s;
       const usedQIds = new Set<string>();
-      const q = pickQuestion(s.selectedLangs, 1, usedQIds);
+      const { q, resurfaced } = pickQuestion(s.selectedLangs, 1, usedQIds);
       usedQIds.add(getQId(q));
-      const timerDuration = getTimerDuration(1);
       return {
         ...s,
         screen: "game",
@@ -194,107 +238,130 @@ export function useGameState() {
         usedQIds,
         levelUpBanner: false,
         lifeRecovered: false,
-        timeLeft: s.mode === "challenge" ? timerDuration : 9999,
+        timeLeft: s.mode === "challenge" ? getTimerDuration(1) : 9999,
         timerBonus: 0,
         retryAvailable: false,
+        hintsUsed: 0,
+        hintPenalty: 0,
+        awaitingExplain: false,
+        explainText: "",
+        explainAccepted: null,
+        srsResurfaced: resurfaced,
         currentQ: q,
-        shuffledOptions: (q.type === "typed" || q.type === "fill") ? [] : shuffle(q.options.map((o, i) => ({ o, i }))),
+        shuffledOptions: isFreeform(q) ? [] : shuffle(q.options.map((o, i) => ({ o, i }))),
       };
     });
   }, []);
 
-  const setTypedAnswer = useCallback((val: string) => {
-    setState((s) => ({ ...s, typedAnswer: val }));
+  const setTypedAnswer = useCallback((val: string) => setState((s) => ({ ...s, typedAnswer: val })), []);
+
+  const useHint = useCallback(() => {
+    setState((s) => {
+      if (!s.currentQ || s.answered) return s;
+      recordHintUsed(getQId(s.currentQ), s.currentQ.lang);
+      return { ...s, hintsUsed: s.hintsUsed + 1, hintPenalty: s.hintPenalty + 1 };
+    });
   }, []);
+
+  const finalizeAnswer = (s: GameState, correct: boolean, userAnswerStr: string): GameState => {
+    if (!s.currentQ) return s;
+    let newLevel = s.level;
+    let levelUpBanner = false;
+    let newStreak = correct ? s.streak + 1 : 0;
+    let newLives = correct ? s.lives : s.lives - 1;
+    let lifeRecovered = false;
+
+    if (correct && s.lives === 1 && s.mode === "challenge") {
+      newLives = 2;
+      lifeRecovered = true;
+    }
+    if (correct && newStreak > 0 && newStreak % 3 === 0 && s.level < 4) {
+      newLevel = s.level + 1;
+      levelUpBanner = true;
+    }
+    const totalTime = getTimerDuration(s.level);
+    const bonus = correct && s.mode === "challenge" ? calcTimerBonus(s.timeLeft, totalTime) : 0;
+    const earned = correct ? Math.max(0, 1 + bonus - s.hintPenalty) : 0;
+
+    // SRS
+    if (correct) {
+      recordCorrect(getQId(s.currentQ), s.currentQ.lang);
+    } else {
+      recordWrong(
+        getQId(s.currentQ),
+        s.currentQ.lang,
+        s.currentQ.q,
+        userAnswerStr,
+        s.currentQ.accept?.[0] || s.currentQ.solution || (s.currentQ.options[s.currentQ.answer] ?? ""),
+      );
+    }
+
+    // Explain-back: 30% of correct answers, only if keywords defined
+    const askExplain = correct && !!s.currentQ.explainKeywords?.length && Math.random() < 0.3;
+
+    return {
+      ...s,
+      answered: true,
+      correct,
+      score: s.score + earned,
+      streak: newStreak,
+      lives: newLives,
+      total: s.total + 1,
+      correctTotal: correct ? s.correctTotal + 1 : s.correctTotal,
+      level: newLevel,
+      levelUpBanner,
+      lifeRecovered,
+      timerBonus: bonus,
+      retryAvailable: !correct && s.mode === "practice",
+      awaitingExplain: askExplain,
+      explainText: "",
+      explainAccepted: null,
+    };
+  };
 
   const answerQuestion = useCallback((chosenIdx: number) => {
     setState((s) => {
       if (s.answered || !s.currentQ) return s;
       const correct = chosenIdx === s.currentQ.answer;
-      let newLevel = s.level;
-      let levelUpBanner = false;
-      let newStreak = correct ? s.streak + 1 : 0;
-      let newLives = correct ? s.lives : s.lives - 1;
-      let lifeRecovered = false;
-
-      // Life recovery: on last life, correct answer gives a life back
-      if (correct && s.lives === 1 && s.mode === "challenge") {
-        newLives = 2;
-        lifeRecovered = true;
-      }
-
-      if (correct && newStreak > 0 && newStreak % 3 === 0 && s.level < 4) {
-        newLevel = s.level + 1;
-        levelUpBanner = true;
-      }
-
-      const totalTime = getTimerDuration(s.level);
-      const bonus = correct && s.mode === "challenge" ? calcTimerBonus(s.timeLeft, totalTime) : 0;
-
-      return {
-        ...s,
-        answered: true,
-        chosen: chosenIdx,
-        correct,
-        score: correct ? s.score + 1 + bonus : s.score,
-        streak: newStreak,
-        lives: newLives,
-        total: s.total + 1,
-        correctTotal: correct ? s.correctTotal + 1 : s.correctTotal,
-        level: newLevel,
-        levelUpBanner,
-        lifeRecovered,
-        timerBonus: bonus,
-        retryAvailable: !correct && s.mode === "practice",
-      };
+      return { ...finalizeAnswer(s, correct, s.currentQ.options[chosenIdx] || ""), chosen: chosenIdx };
     });
   }, []);
 
   const answerTyped = useCallback(() => {
     setState((s) => {
-      if (s.answered || !s.currentQ || !s.currentQ.accept) return s;
-      const userAnswer = s.typedAnswer.trim().toLowerCase();
-      const correct = s.currentQ.accept.some(
-        (a) => a.trim().toLowerCase() === userAnswer
-      );
-      let newLevel = s.level;
-      let levelUpBanner = false;
-      let newStreak = correct ? s.streak + 1 : 0;
-      let newLives = correct ? s.lives : s.lives - 1;
-      let lifeRecovered = false;
+      if (s.answered || !s.currentQ) return s;
+      const q = s.currentQ;
+      const userAnswer = s.typedAnswer;
 
-      // Life recovery
-      if (correct && s.lives === 1 && s.mode === "challenge") {
-        newLives = 2;
-        lifeRecovered = true;
+      let correct = false;
+      if (q.type === "scratch" || q.type === "bugfix") {
+        correct = validatePatterns(userAnswer, q.mustMatch, q.mustNotMatch);
+      } else if (q.accept) {
+        const norm = userAnswer.trim().toLowerCase();
+        correct = q.accept.some((a) => a.trim().toLowerCase() === norm);
       }
+      return { ...finalizeAnswer(s, correct, userAnswer), chosen: null };
+    });
+  }, []);
 
-      if (correct && newStreak > 0 && newStreak % 3 === 0 && s.level < 4) {
-        newLevel = s.level + 1;
-        levelUpBanner = true;
-      }
-
-      const totalTime = getTimerDuration(s.level);
-      const bonus = correct && s.mode === "challenge" ? calcTimerBonus(s.timeLeft, totalTime) : 0;
-
+  const submitExplain = useCallback(() => {
+    setState((s) => {
+      if (!s.awaitingExplain || !s.currentQ?.explainKeywords) return s;
+      const text = s.explainText.toLowerCase();
+      const ok = s.currentQ.explainKeywords.some((k) => text.includes(k.toLowerCase()));
+      // Bonus +1 if accepted, -1 from score if rejected (but not below earned points)
       return {
         ...s,
-        answered: true,
-        chosen: null,
-        correct,
-        score: correct ? s.score + 1 + bonus : s.score,
-        streak: newStreak,
-        lives: newLives,
-        total: s.total + 1,
-        correctTotal: correct ? s.correctTotal + 1 : s.correctTotal,
-        level: newLevel,
-        levelUpBanner,
-        lifeRecovered,
-        timerBonus: bonus,
-        retryAvailable: !correct && s.mode === "practice",
+        explainAccepted: ok,
+        score: ok ? s.score + 1 : s.score,
+        awaitingExplain: false,
       };
     });
   }, []);
+
+  const setExplainText = useCallback((val: string) => setState((s) => ({ ...s, explainText: val })), []);
+
+  const skipExplain = useCallback(() => setState((s) => ({ ...s, awaitingExplain: false })), []);
 
   const retryQuestion = useCallback(() => {
     setState((s) => ({
@@ -306,6 +373,8 @@ export function useGameState() {
       retryAvailable: false,
       lifeRecovered: false,
       timerBonus: 0,
+      hintsUsed: 0,
+      hintPenalty: 0,
     }));
   }, []);
 
@@ -314,9 +383,8 @@ export function useGameState() {
       if (s.lives <= 0 && s.mode === "challenge") {
         return { ...s, screen: "gameover" };
       }
-      const q = pickQuestion(s.selectedLangs, s.level, s.usedQIds);
+      const { q, resurfaced } = pickQuestion(s.selectedLangs, s.level, s.usedQIds);
       s.usedQIds.add(getQId(q));
-      const timerDuration = getTimerDuration(s.level);
       return {
         ...s,
         answered: false,
@@ -325,11 +393,17 @@ export function useGameState() {
         typedAnswer: "",
         levelUpBanner: false,
         lifeRecovered: false,
-        timeLeft: s.mode === "challenge" ? timerDuration : 9999,
+        timeLeft: s.mode === "challenge" ? getTimerDuration(s.level) : 9999,
         timerBonus: 0,
         retryAvailable: false,
+        hintsUsed: 0,
+        hintPenalty: 0,
+        awaitingExplain: false,
+        explainText: "",
+        explainAccepted: null,
+        srsResurfaced: resurfaced,
         currentQ: q,
-        shuffledOptions: (q.type === "typed" || q.type === "fill") ? [] : shuffle(q.options.map((o, i) => ({ o, i }))),
+        shuffledOptions: isFreeform(q) ? [] : shuffle(q.options.map((o, i) => ({ o, i }))),
       };
     });
   }, []);
@@ -352,6 +426,10 @@ export function useGameState() {
     answerQuestion,
     answerTyped,
     setTypedAnswer,
+    useHint,
+    submitExplain,
+    setExplainText,
+    skipExplain,
     nextQuestion,
     retryQuestion,
     restart,
