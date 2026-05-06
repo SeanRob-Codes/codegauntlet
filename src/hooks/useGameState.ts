@@ -488,5 +488,7 @@ export function useGameState() {
     nextQuestion,
     retryQuestion,
     restart,
+    goToStats,
+    goToStart,
   };
 }
