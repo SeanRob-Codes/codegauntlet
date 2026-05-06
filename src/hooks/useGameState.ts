@@ -417,9 +417,25 @@ export function useGameState() {
   const nextQuestion = useCallback(() => {
     setState((s) => {
       if (s.lives <= 0 && s.mode === "challenge") {
+        // Save score to leaderboard
+        const acc = s.total > 0 ? Math.round((s.correctTotal / s.total) * 100) : 0;
+        saveScore({
+          date: Date.now(),
+          score: s.score,
+          level: s.level,
+          accuracy: acc,
+          total: s.total,
+          mode: s.mode,
+          langs: s.selectedLangs,
+        });
         return { ...s, screen: "gameover" };
       }
-      const { q, resurfaced } = pickQuestion(s.selectedLangs, s.level, s.usedQIds);
+      // Continue chain if last question was a chain step and was correct
+      let forceChain: { chainId: string; nextStep: number } | undefined;
+      if (s.correct && s.currentQ?.chainId && s.currentQ.chainStep) {
+        forceChain = { chainId: s.currentQ.chainId, nextStep: s.currentQ.chainStep + 1 };
+      }
+      const { q, resurfaced } = pickQuestion(s.selectedLangs, s.level, s.usedQIds, forceChain);
       s.usedQIds.add(getQId(q));
       return {
         ...s,
@@ -451,6 +467,9 @@ export function useGameState() {
       mode: s.mode,
     }));
   }, []);
+
+  const goToStats = useCallback(() => setState((s) => ({ ...s, screen: "stats" })), []);
+  const goToStart = useCallback(() => setState((s) => ({ ...s, screen: "start" })), []);
 
   return {
     state,
