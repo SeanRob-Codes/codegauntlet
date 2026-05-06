@@ -60,34 +60,45 @@ function pickQuestion(
   selectedLangs: string[],
   level: number,
   usedQIds: Set<string>,
+  forceChain?: { chainId: string; nextStep: number },
 ): { q: Question; resurfaced: boolean } {
-  // 1. SRS due — 40% chance
+  if (forceChain) {
+    const next = ALL_QUESTIONS.find(
+      (q) => q.chainId === forceChain.chainId && q.chainStep === forceChain.nextStep,
+    );
+    if (next) return { q: next, resurfaced: false };
+  }
+
+  const allowed = selectedLangs.filter((l) => !isLocked(l).locked);
+  const langs = allowed.length ? allowed : selectedLangs;
+
   const dueQids = getDueQids();
   const dueInPool = dueQids
     .map((id) => ALL_QUESTIONS.find((q) => getQId(q) === id))
-    .filter((q): q is Question => !!q && selectedLangs.includes(q.lang) && !usedQIds.has(getQId(q)));
+    .filter((q): q is Question => !!q && langs.includes(q.lang) && !usedQIds.has(getQId(q)));
   if (dueInPool.length > 0 && Math.random() < 0.4) {
     return { q: dueInPool[0], resurfaced: true };
   }
 
-  // 2. Flagged topic boost — 30% chance bias toward flagged langs
   const flagged = getFlaggedTopics();
-  const flaggedLangs = Object.keys(flagged).filter((l) => selectedLangs.includes(l));
+  const flaggedLangs = Object.keys(flagged).filter((l) => langs.includes(l));
   let pool: Question[] = [];
   if (flaggedLangs.length > 0 && Math.random() < 0.3) {
     pool = ALL_QUESTIONS.filter(
-      (q) => flaggedLangs.includes(q.lang) && q.level <= Math.min(level, 4) && !usedQIds.has(getQId(q)),
+      (q) => flaggedLangs.includes(q.lang) && q.level <= Math.min(level, 4) && !usedQIds.has(getQId(q))
+        && (!q.chainStep || q.chainStep === 1),
     );
   }
   if (!pool.length) {
     pool = ALL_QUESTIONS.filter(
-      (q) => selectedLangs.includes(q.lang) && q.level <= Math.min(level, 4) && !usedQIds.has(getQId(q)),
+      (q) => langs.includes(q.lang) && q.level <= Math.min(level, 4) && !usedQIds.has(getQId(q))
+        && (!q.chainStep || q.chainStep === 1),
     );
   }
   if (!pool.length) {
     usedQIds.clear();
     pool = ALL_QUESTIONS.filter(
-      (q) => selectedLangs.includes(q.lang) && q.level <= Math.min(level, 4),
+      (q) => langs.includes(q.lang) && q.level <= Math.min(level, 4) && (!q.chainStep || q.chainStep === 1),
     );
   }
   return { q: pool[Math.floor(Math.random() * pool.length)], resurfaced: false };
