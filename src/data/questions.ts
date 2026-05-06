@@ -1,4 +1,14 @@
-export type QuestionType = "choice" | "typed" | "fill" | "scratch" | "bugfix";
+export type QuestionType =
+  | "choice"
+  | "typed"
+  | "fill"
+  | "scratch"
+  | "bugfix"
+  | "bigO"      // choice — select Big-O complexity of given snippet
+  | "predict"   // typed — predict the output of a snippet
+  | "tradeoff"  // choice — when would you use X vs Y
+  | "design"    // long-form — system design / architecture, keyword-group graded
+  | "mock";     // long-form — mock interview thought process, keyword-group graded
 
 export interface Question {
   lang: string;
@@ -23,6 +33,13 @@ export interface Question {
   solution?: string;
   // For "explain-back": after correct, ask why. Keywords (any one) needed in their answer.
   explainKeywords?: string[];
+  // For "design"/"mock"/long-form: groups of keywords; user must hit ≥1 per group.
+  // Score = % of groups covered (must be >= passThreshold to count as correct).
+  keywordGroups?: string[][];
+  passThreshold?: number; // 0..1, default 0.6
+  // For "chain": id grouping multi-step build-up questions (run sequentially when one fires).
+  chainId?: string;
+  chainStep?: number;
 }
 
 export const LANG_COLORS: Record<string, { bg: string; border: string; text: string }> = {
@@ -860,5 +877,103 @@ export const ALL_QUESTIONS: Question[] = [
     hint:"Integer division truncates.",
     explain:"`int / int` is integer division in Java. Cast to double first.",
     explainKeywords:["integer division","cast","double","truncate"]},
+
+  // ===== BIG-O MODE =====
+  {lang:"DSA",level:2,q:"What is the time complexity of this snippet?",code:"for (let i = 0; i < n; i++) {\n  console.log(i);\n}",type:"bigO",options:["O(1)","O(log n)","O(n)","O(n²)"],answer:2,explain:"A single loop over n items runs in linear time."},
+  {lang:"DSA",level:2,q:"What is the time complexity?",code:"for (let i = 0; i < n; i++) {\n  for (let j = 0; j < n; j++) {\n    console.log(i, j);\n  }\n}",type:"bigO",options:["O(n)","O(n log n)","O(n²)","O(2ⁿ)"],answer:2,explain:"Nested loops over n give n × n = n² operations."},
+  {lang:"DSA",level:3,q:"Time complexity of binary search?",code:"function bsearch(arr, t) {\n  let l=0, r=arr.length-1;\n  while (l<=r) {\n    const m=(l+r)>>1;\n    if (arr[m]===t) return m;\n    if (arr[m]<t) l=m+1; else r=m-1;\n  }\n}",type:"bigO",options:["O(n)","O(log n)","O(n log n)","O(1)"],answer:1,explain:"Halving the search space each iteration → log₂ n."},
+  {lang:"DSA",level:3,q:"Time complexity?",code:"function fib(n) {\n  if (n<2) return n;\n  return fib(n-1) + fib(n-2);\n}",type:"bigO",options:["O(n)","O(n²)","O(2ⁿ)","O(log n)"],answer:2,explain:"Naive recursive fib has two recursive calls per level → exponential."},
+  {lang:"DSA",level:3,q:"Space complexity of merge sort?",code:null,type:"bigO",options:["O(1)","O(log n)","O(n)","O(n²)"],answer:2,explain:"Merge sort uses an auxiliary array of size n."},
+  {lang:"DSA",level:4,q:"Time complexity?",code:"for (let i=1; i<n; i*=2) {\n  for (let j=0; j<n; j++) console.log(j);\n}",type:"bigO",options:["O(n)","O(n log n)","O(n²)","O(log n)"],answer:1,explain:"Outer loop runs log n times, inner runs n times → n log n."},
+  {lang:"DSA",level:4,q:"What's the average time complexity of a hash map lookup?",code:null,type:"bigO",options:["O(1)","O(log n)","O(n)","O(n²)"],answer:0,explain:"Hash map lookup is O(1) average, O(n) worst-case with collisions."},
+
+  // ===== PREDICT-OUTPUT MODE =====
+  {lang:"JavaScript",level:2,q:"What does this print?",code:"console.log([1,2,3].map(x => x*2).filter(x => x > 2));",type:"predict",options:[],answer:0,accept:["[4,6]","[ 4, 6 ]","[4, 6]"],hint:"Map then filter.",explain:"Map → [2,4,6], filter > 2 → [4,6]."},
+  {lang:"JavaScript",level:2,q:"What does this print?",code:"console.log(0.1 + 0.2 === 0.3);",type:"predict",options:[],answer:0,accept:["false"],hint:"IEEE 754 floats.",explain:"Floating-point precision means 0.1 + 0.2 = 0.30000000000000004."},
+  {lang:"JavaScript",level:3,q:"What does this print?",code:"const a = [1,2,3];\nconst b = a;\nb.push(4);\nconsole.log(a.length);",type:"predict",options:[],answer:0,accept:["4"],hint:"Reference vs copy.",explain:"`b` references the same array — mutations affect both."},
+  {lang:"Python",level:2,q:"What does this print?",code:"print([i*i for i in range(4)])",type:"predict",options:[],answer:0,accept:["[0, 1, 4, 9]","[0,1,4,9]"],explain:"List comprehension squares 0..3."},
+  {lang:"Python",level:3,q:"What does this print?",code:"def f(x, lst=[]):\n    lst.append(x)\n    return lst\nprint(f(1)); print(f(2))",type:"predict",options:[],answer:0,accept:["[1]\n[1, 2]","[1] [1, 2]","[1]\n[1,2]"],hint:"Mutable default arguments.",explain:"Default `lst=[]` is created once and reused — classic Python gotcha."},
+  {lang:"Java",level:2,q:"What does this print?",code:"String a = \"hi\";\nString b = \"hi\";\nSystem.out.println(a == b);",type:"predict",options:[],answer:0,accept:["true"],explain:"String literals are interned — both refer to the same object."},
+
+  // ===== TRADE-OFF MODE =====
+  {lang:"DSA",level:3,q:"When would you use a HashMap over a TreeMap?",code:null,type:"tradeoff",options:["Always — it's faster","When you need O(1) lookup and don't care about key order","When you need sorted keys","Never — TreeMap is better"],answer:1,explain:"HashMap = O(1) lookup, no order. TreeMap = O(log n) lookup, sorted keys. Choose based on whether you need order."},
+  {lang:"React",level:3,q:"When should you use `useMemo`?",code:null,type:"tradeoff",options:["On every value","Only when computing a value is expensive AND the inputs change rarely","Never — it's deprecated","To replace useState"],answer:1,explain:"useMemo has overhead. Use it for expensive calculations, not trivially cheap ones."},
+  {lang:"SQL",level:3,q:"When would you use NoSQL over SQL?",code:null,type:"tradeoff",options:["Always — it's modern","When you need flexible schema, horizontal scale, and can sacrifice ACID guarantees","When you need joins","When you have tabular data"],answer:1,explain:"SQL = strong consistency + relations. NoSQL = flexible schema + scale. Pick based on data shape and consistency needs."},
+  {lang:"DSA",level:4,q:"When would you pick a linked list over an array?",code:null,type:"tradeoff",options:["Always — it's more flexible","When you need O(1) insertion/deletion at known positions and don't need random access","When you need fast indexing","When memory is tight"],answer:1,explain:"Arrays = O(1) random access, contiguous memory. Linked lists = O(1) splice but no random access and more memory overhead."},
+  {lang:"DSA",level:4,q:"When would you use BFS over DFS?",code:null,type:"tradeoff",options:["Never","When you need the shortest path in an unweighted graph","When the graph is deep","When you need to detect cycles"],answer:1,explain:"BFS finds shortest path (in edges) first. DFS is better for going deep, topological sort, or detecting cycles."},
+
+  // ===== SYSTEM DESIGN MODE =====
+  {lang:"DSA",level:4,q:"Design a notification system that delivers messages to 10M users with low latency. Outline your approach: data flow, storage, scaling concerns, and trade-offs.",code:null,type:"design",options:[],answer:0,
+    keywordGroups:[
+      ["queue","kafka","rabbitmq","pub/sub","pubsub","sqs"],
+      ["fanout","push","websocket","sse","poll"],
+      ["shard","partition","horizontal","scale","scaling"],
+      ["cache","redis","memcached"],
+      ["retry","dead letter","dlq","fail","idempoten"]
+    ],
+    passThreshold:0.6,
+    explain:"Strong answers cover: a message queue (Kafka/SQS), a fanout strategy (push vs pull, websockets), sharding by user, caching for delivery state, and retry/DLQ for failures.",
+    hint:"Think queue → fanout → delivery → persistence → failure handling."},
+  {lang:"DSA",level:4,q:"Design a URL shortener (like bit.ly). Cover: ID generation, storage, read path, and how you'd handle 100k requests/sec.",code:null,type:"design",options:[],answer:0,
+    keywordGroups:[
+      ["base62","hash","counter","snowflake","uuid"],
+      ["redis","cache","memcached","cdn"],
+      ["database","postgres","mysql","dynamo","key-value"],
+      ["shard","replica","read replica","scale"],
+      ["collision","unique","constraint"]
+    ],
+    passThreshold:0.6,
+    explain:"Solid designs include: base62/hash for short IDs, key-value store for the mapping, aggressive caching (Redis/CDN), read replicas/sharding for scale, and collision handling.",
+    hint:"ID scheme → storage → caching → scaling reads → collisions."},
+  {lang:"DSA",level:4,q:"Design a rate limiter for an API serving 1M req/sec across many servers. Compare algorithms and discuss state storage.",code:null,type:"design",options:[],answer:0,
+    keywordGroups:[
+      ["token bucket","leaky bucket","sliding window","fixed window"],
+      ["redis","centralized","distributed","memcached"],
+      ["per user","per ip","per key"],
+      ["atomic","lua","race","concurrent"]
+    ],
+    passThreshold:0.6,
+    explain:"Cover: algorithms (token bucket vs sliding window), distributed state (Redis with Lua scripts), keying (user/IP/API-key), and race-condition handling.",
+    hint:"Algorithm → storage → key → atomicity."},
+
+  // ===== MOCK INTERVIEW MODE =====
+  {lang:"DSA",level:3,q:"Walk me through how you'd find the first non-repeating character in a string. Explain your thought process before writing code: brute force first, then optimize.",code:null,type:"mock",options:[],answer:0,
+    keywordGroups:[
+      ["brute","nested","two loop","o(n²)","o(n*n)"],
+      ["hash","map","dict","frequency","count"],
+      ["o(n)","linear","two pass","single pass"],
+      ["edge","empty","case","unicode"]
+    ],
+    passThreshold:0.6,
+    explain:"Strong answer: state brute force (O(n²)), propose hash map of counts (two-pass O(n)), discuss edge cases (empty, all repeating, case sensitivity).",
+    hint:"Brute first → identify bottleneck → propose data structure → discuss edges."},
+  {lang:"DSA",level:3,q:"You're given a stream of integers. Walk through how you'd find the running median efficiently. Talk through your data structure choice.",code:null,type:"mock",options:[],answer:0,
+    keywordGroups:[
+      ["heap","priority queue","two heap","min heap","max heap"],
+      ["balance","rebalance","equal size"],
+      ["o(log n)","logarithmic","insert"],
+      ["odd","even","middle","median"]
+    ],
+    passThreshold:0.6,
+    explain:"Two heaps: a max-heap for the lower half, min-heap for the upper. Rebalance after each insert. Median is heap top(s). O(log n) insert, O(1) query.",
+    hint:"Naive sort is O(n log n) per insert — find a better data structure."},
+
+  // ===== BUILD-UP CHAIN: array sum =====
+  {lang:"DSA",level:1,chainId:"sum-chain",chainStep:1,q:"Step 1/3 — Declare a variable `total` initialized to 0.",code:null,type:"scratch",options:[],answer:0,
+    requirements:["Declare `total`","Initialize it to 0"],
+    mustMatch:["(let|const|var)\\s+total\\s*=\\s*0"],
+    solution:"let total = 0;",
+    explain:"Foundation: a counter starts at zero before accumulating."},
+  {lang:"DSA",level:2,chainId:"sum-chain",chainStep:2,q:"Step 2/3 — Now write a `for` loop over an array `nums` that adds each value to `total`.",code:null,type:"scratch",options:[],answer:0,
+    requirements:["Loop over `nums`","Add each element to `total`"],
+    mustMatch:["for\\s*\\(","total\\s*\\+=|total\\s*=\\s*total\\s*\\+"],
+    solution:"let total = 0;\nfor (let i = 0; i < nums.length; i++) {\n  total += nums[i];\n}",
+    explain:"Loop + accumulator is the building block of reduce, average, sum, count, etc."},
+  {lang:"DSA",level:3,chainId:"sum-chain",chainStep:3,q:"Step 3/3 — Wrap that into a function `sumArray(nums)` that returns the total. Handle empty arrays cleanly.",code:null,type:"scratch",options:[],answer:0,
+    requirements:["Function named `sumArray`","Takes `nums` parameter","Returns the total","Works on empty arrays"],
+    mustMatch:["function\\s+sumArray\\s*\\(\\s*nums\\s*\\)|sumArray\\s*=\\s*\\(?\\s*nums","return\\s+total"],
+    solution:"function sumArray(nums) {\n  let total = 0;\n  for (const n of nums) total += n;\n  return total;\n}",
+    explain:"You've now built a reusable utility from scratch — variable → loop → function.",
+    explainKeywords:["abstract","reusable","function","encapsul"]},
 ];
 

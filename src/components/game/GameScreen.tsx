@@ -36,12 +36,16 @@ export default function GameScreen({
   const q = state.currentQ;
   const inputRef = useRef<HTMLInputElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
-  const isShortTyped = q?.type === "typed" || q?.type === "fill";
-  const isCodeEditor = q?.type === "scratch" || q?.type === "bugfix";
+  const isShortTyped = q?.type === "typed" || q?.type === "fill" || q?.type === "predict";
+  const isLongForm = q?.type === "design" || q?.type === "mock";
+  const isCodeEditor = q?.type === "scratch" || q?.type === "bugfix" || isLongForm;
   const isTyped = isShortTyped || isCodeEditor;
   const isFill = q?.type === "fill";
   const isScratch = q?.type === "scratch";
   const isBugFix = q?.type === "bugfix";
+  const isPredict = q?.type === "predict";
+  const isBigO = q?.type === "bigO";
+  const isTradeoff = q?.type === "tradeoff";
   const isPractice = state.mode === "practice";
   const noTimer = isCodeEditor;
 
@@ -183,8 +187,14 @@ export default function GameScreen({
         </p>
         {isFill && <Tag color="warning">🧩 Fill the blank</Tag>}
         {q.type === "typed" && <Tag color="accent">⌨ Type answer</Tag>}
+        {isPredict && <Tag color="accent">🔮 Predict output</Tag>}
+        {isBigO && <Tag color="primary">📈 Big-O</Tag>}
+        {isTradeoff && <Tag color="primary">⚖ Trade-off</Tag>}
         {isScratch && <Tag color="primary">✍ Write from scratch</Tag>}
         {isBugFix && <Tag color="destructive">🐛 Bug fix</Tag>}
+        {q.type === "design" && <Tag color="primary">🏗 System design</Tag>}
+        {q.type === "mock" && <Tag color="accent">🎤 Mock interview</Tag>}
+        {q.chainId && <Tag color="warning">🔗 Chain {q.chainStep}</Tag>}
         {state.hintPenalty > 0 && <Tag color="warning">−{state.hintPenalty} hint penalty</Tag>}
       </div>
 
@@ -263,16 +273,23 @@ export default function GameScreen({
                 ref={taRef}
                 value={state.typedAnswer}
                 onChange={(e) => onTypedChange(e.target.value)}
-                placeholder={isScratch ? "Write your code here..." : "Edit the code to fix it..."}
-                rows={isBugFix ? 8 : 10}
+                placeholder={
+                  isScratch ? "Write your code here..." :
+                  isBugFix ? "Edit the code to fix it..." :
+                  q.type === "design" ? "Outline your design — data flow, storage, scaling, trade-offs..." :
+                  "Walk through your thought process step by step..."
+                }
+                rows={isLongForm ? 10 : isBugFix ? 8 : 10}
                 spellCheck={false}
                 className="w-full p-3 rounded-lg text-xs font-mono bg-background border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all leading-relaxed resize-y"
               />
               <p className="text-[10px] text-muted-foreground font-mono">
-                💡 Validated by pattern matching — write idiomatic code, no shortcuts.
+                💡 {isLongForm
+                  ? `Graded on coverage of key concepts (need ≥${Math.round((q.passThreshold ?? 0.6) * 100)}% of topic groups).`
+                  : "Validated by pattern matching — write idiomatic code, no shortcuts."}
               </p>
               <HintBlock state={state} onUseHint={onUseHint} hints={getHintContent()} />
-              <SubmitBtn disabled={!state.typedAnswer.trim()} label={isBugFix ? "Submit fix →" : "Submit code →"} />
+              <SubmitBtn disabled={!state.typedAnswer.trim()} label={isBugFix ? "Submit fix →" : isLongForm ? "Submit answer →" : "Submit code →"} />
             </form>
           )}
 

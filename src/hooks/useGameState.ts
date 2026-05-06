@@ -7,8 +7,10 @@ import {
   getDueQids,
   getFlaggedTopics,
 } from "@/lib/srs";
+import { saveScore } from "@/lib/leaderboard";
+import { recordMasteryCorrect, isLocked } from "@/lib/prereqs";
 
-export type Screen = "start" | "game" | "gameover";
+export type Screen = "start" | "game" | "gameover" | "stats";
 export type GameMode = "challenge" | "practice";
 
 export interface GameState {
@@ -58,34 +60,45 @@ function pickQuestion(
   selectedLangs: string[],
   level: number,
   usedQIds: Set<string>,
+  forceChain?: { chainId: string; nextStep: number },
 ): { q: Question; resurfaced: boolean } {
-  // 1. SRS due — 40% chance
+  if (forceChain) {
+    const next = ALL_QUESTIONS.find(
+      (q) => q.chainId === forceChain.chainId && q.chainStep === forceChain.nextStep,
+    );
+    if (next) return { q: next, resurfaced: false };
+  }
+
+  const allowed = selectedLangs.filter((l) => !isLocked(l).locked);
+  const langs = allowed.length ? allowed : selectedLangs;
+
   const dueQids = getDueQids();
   const dueInPool = dueQids
     .map((id) => ALL_QUESTIONS.find((q) => getQId(q) === id))
-    .filter((q): q is Question => !!q && selectedLangs.includes(q.lang) && !usedQIds.has(getQId(q)));
+    .filter((q): q is Question => !!q && langs.includes(q.lang) && !usedQIds.has(getQId(q)));
   if (dueInPool.length > 0 && Math.random() < 0.4) {
     return { q: dueInPool[0], resurfaced: true };
   }
 
-  // 2. Flagged topic boost — 30% chance bias toward flagged langs
   const flagged = getFlaggedTopics();
-  const flaggedLangs = Object.keys(flagged).filter((l) => selectedLangs.includes(l));
+  const flaggedLangs = Object.keys(flagged).filter((l) => langs.includes(l));
   let pool: Question[] = [];
   if (flaggedLangs.length > 0 && Math.random() < 0.3) {
     pool = ALL_QUESTIONS.filter(
-      (q) => flaggedLangs.includes(q.lang) && q.level <= Math.min(level, 4) && !usedQIds.has(getQId(q)),
+      (q) => flaggedLangs.includes(q.lang) && q.level <= Math.min(level, 4) && !usedQIds.has(getQId(q))
+        && (!q.chainStep || q.chainStep === 1),
     );
   }
   if (!pool.length) {
     pool = ALL_QUESTIONS.filter(
-      (q) => selectedLangs.includes(q.lang) && q.level <= Math.min(level, 4) && !usedQIds.has(getQId(q)),
+      (q) => langs.includes(q.lang) && q.level <= Math.min(level, 4) && !usedQIds.has(getQId(q))
+        && (!q.chainStep || q.chainStep === 1),
     );
   }
   if (!pool.length) {
     usedQIds.clear();
     pool = ALL_QUESTIONS.filter(
-      (q) => selectedLangs.includes(q.lang) && q.level <= Math.min(level, 4),
+      (q) => langs.includes(q.lang) && q.level <= Math.min(level, 4) && (!q.chainStep || q.chainStep === 1),
     );
   }
   return { q: pool[Math.floor(Math.random() * pool.length)], resurfaced: false };
@@ -123,6 +136,15 @@ function validatePatterns(answer: string, mustMatch: string[] = [], mustNotMatch
   return true;
 }
 
+function gradeKeywordGroups(answer: string, groups: string[][], threshold = 0.6): { ok: boolean; covered: number; total: number } {
+  const text = answer.toLowerCase();
+  let hits = 0;
+  for (const group of groups) {
+    if (group.some((kw) => text.includes(kw.toLowerCase()))) hits++;
+  }
+  return { ok: hits / groups.length >= threshold, covered: hits, total: groups.length };
+}
+
 const initialState: GameState = {
   screen: "start",
   mode: "challenge",
@@ -153,8 +175,17 @@ const initialState: GameState = {
   srsResurfaced: false,
 };
 
+function isLongForm(q: Question | null): boolean {
+  return !!q && (q.type === "design" || q.type === "mock");
+}
+
 function isFreeform(q: Question | null): boolean {
-  return !!q && (q.type === "typed" || q.type === "fill" || q.type === "scratch" || q.type === "bugfix");
+  return !!q && (q.type === "typed" || q.type === "fill" || q.type === "scratch" || q.type === "bugfix" || q.type === "predict" || isLongForm(q));
+}
+
+function isChoiceLike(q: Question | null): boolean {
+  if (!q) return false;
+  return !isFreeform(q); // choice, bigO, tradeoff
 }
 
 export function useGameState() {
@@ -168,8 +199,9 @@ export function useGameState() {
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
 
-    // No timer for scratch/bugfix — they need thinking time
-    const noTimerType = state.currentQ?.type === "scratch" || state.currentQ?.type === "bugfix";
+    // No timer for code editors and long-form prompts
+    const t = state.currentQ?.type;
+    const noTimerType = t === "scratch" || t === "bugfix" || t === "design" || t === "mock";
 
     if (state.screen === "game" && !state.answered && state.currentQ && state.mode === "challenge" && !noTimerType && !state.awaitingExplain) {
       timerRef.current = setInterval(() => {
@@ -283,9 +315,10 @@ export function useGameState() {
     const bonus = correct && s.mode === "challenge" ? calcTimerBonus(s.timeLeft, totalTime) : 0;
     const earned = correct ? Math.max(0, 1 + bonus - s.hintPenalty) : 0;
 
-    // SRS
+    // SRS + mastery
     if (correct) {
       recordCorrect(getQId(s.currentQ), s.currentQ.lang);
+      recordMasteryCorrect(s.currentQ.lang);
     } else {
       recordWrong(
         getQId(s.currentQ),
@@ -336,9 +369,12 @@ export function useGameState() {
       let correct = false;
       if (q.type === "scratch" || q.type === "bugfix") {
         correct = validatePatterns(userAnswer, q.mustMatch, q.mustNotMatch);
+      } else if (q.type === "design" || q.type === "mock") {
+        const groups = q.keywordGroups || [];
+        if (groups.length) correct = gradeKeywordGroups(userAnswer, groups, q.passThreshold ?? 0.6).ok;
       } else if (q.accept) {
-        const norm = userAnswer.trim().toLowerCase();
-        correct = q.accept.some((a) => a.trim().toLowerCase() === norm);
+        const norm = userAnswer.trim().toLowerCase().replace(/\s+/g, " ");
+        correct = q.accept.some((a) => a.trim().toLowerCase().replace(/\s+/g, " ") === norm);
       }
       return { ...finalizeAnswer(s, correct, userAnswer), chosen: null };
     });
@@ -381,9 +417,25 @@ export function useGameState() {
   const nextQuestion = useCallback(() => {
     setState((s) => {
       if (s.lives <= 0 && s.mode === "challenge") {
+        // Save score to leaderboard
+        const acc = s.total > 0 ? Math.round((s.correctTotal / s.total) * 100) : 0;
+        saveScore({
+          date: Date.now(),
+          score: s.score,
+          level: s.level,
+          accuracy: acc,
+          total: s.total,
+          mode: s.mode,
+          langs: s.selectedLangs,
+        });
         return { ...s, screen: "gameover" };
       }
-      const { q, resurfaced } = pickQuestion(s.selectedLangs, s.level, s.usedQIds);
+      // Continue chain if last question was a chain step and was correct
+      let forceChain: { chainId: string; nextStep: number } | undefined;
+      if (s.correct && s.currentQ?.chainId && s.currentQ.chainStep) {
+        forceChain = { chainId: s.currentQ.chainId, nextStep: s.currentQ.chainStep + 1 };
+      }
+      const { q, resurfaced } = pickQuestion(s.selectedLangs, s.level, s.usedQIds, forceChain);
       s.usedQIds.add(getQId(q));
       return {
         ...s,
@@ -416,6 +468,9 @@ export function useGameState() {
     }));
   }, []);
 
+  const goToStats = useCallback(() => setState((s) => ({ ...s, screen: "stats" })), []);
+  const goToStart = useCallback(() => setState((s) => ({ ...s, screen: "start" })), []);
+
   return {
     state,
     toggleLang,
@@ -433,5 +488,7 @@ export function useGameState() {
     nextQuestion,
     retryQuestion,
     restart,
+    goToStats,
+    goToStart,
   };
 }
