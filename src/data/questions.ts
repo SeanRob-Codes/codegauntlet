@@ -1,4 +1,4 @@
-export type QuestionType = "choice" | "typed" | "fill";
+export type QuestionType = "choice" | "typed" | "fill" | "scratch" | "bugfix";
 
 export interface Question {
   lang: string;
@@ -9,8 +9,20 @@ export interface Question {
   options: string[];   // used for "choice" type
   answer: number;      // used for "choice" type
   accept?: string[];   // accepted answers for "typed" and "fill" types (case-insensitive, trimmed)
-  hint?: string;       // optional hint for typed/fill questions
+  hint?: string;       // optional hint
   explain: string;
+  // For "scratch" and "bugfix": list of regex source strings; ALL must match (case-insensitive, multiline).
+  mustMatch?: string[];
+  // For "scratch" and "bugfix": regex patterns that must NOT appear (e.g. forbidden shortcuts).
+  mustNotMatch?: string[];
+  // For "scratch": starter prompt requirements text shown to user.
+  requirements?: string[];
+  // For "bugfix": the buggy code shown (overrides `code` for editing); user edits and submits the full snippet.
+  buggyCode?: string;
+  // Reference solution shown after the user submits.
+  solution?: string;
+  // For "explain-back": after correct, ask why. Keywords (any one) needed in their answer.
+  explainKeywords?: string[];
 }
 
 export const LANG_COLORS: Record<string, { bg: string; border: string; text: string }> = {
@@ -774,5 +786,79 @@ export const ALL_QUESTIONS: Question[] = [
   {lang:"DSA",level:3,q:"Complete the swap in bubble sort.",code:'if (arr[j] > arr[j + 1]) {\n  [arr[j], arr[j+1]] = [____, ____];\n}',type:"fill",options:[],answer:0,accept:["arr[j+1], arr[j]","arr[j + 1], arr[j]"],hint:"Swap the two elements — reverse order",explain:"Destructuring swap: `[a, b] = [b, a]` swaps without a temp variable."},
   {lang:"DSA",level:4,q:"Complete the merge step of merge sort.",code:'if (left[i] ____ right[j]) {\n  result.push(left[i]);\n  i++;\n} else {\n  result.push(right[j]);\n  j++;\n}',type:"fill",options:[],answer:0,accept:["<=","<"],hint:"Compare left and right elements",explain:"Merge sort compares elements from both halves, taking the smaller one."},
   {lang:"DSA",level:4,q:"Fill in the hash function operation.",code:'function hash(key, size) {\n  return key ____ size;\n}',type:"fill",options:[],answer:0,accept:["%","% size"],hint:"The modulo operator ensures the index fits in the array",explain:"`key % size` maps any key to a valid array index using the modulo operator."},
+
+  // ===== WRITE-FROM-SCRATCH =====
+  {lang:"JavaScript",level:2,q:"Write a function `add(a, b)` that returns the sum of two numbers.",code:null,type:"scratch",options:[],answer:0,
+    requirements:["Function named `add`","Takes two parameters","Returns their sum"],
+    mustMatch:["function\\s+add\\s*\\(", "return\\s+[a-z_]+\\s*\\+\\s*[a-z_]+"],
+    solution:"function add(a, b) {\n  return a + b;\n}",
+    explain:"The function declaration with `return a + b` is the canonical solution.",
+    explainKeywords:["return","sum","add","plus"]},
+  {lang:"JavaScript",level:3,q:"Write a function `reverseString(s)` that returns the reverse of a string.",code:null,type:"scratch",options:[],answer:0,
+    requirements:["Function named `reverseString`","Returns reversed string","Handle empty strings"],
+    mustMatch:["function\\s+reverseString\\s*\\(", "(split\\s*\\(\\s*[\"']{1}[\"']{1}\\s*\\)|for\\s*\\(|reduce)"],
+    solution:"function reverseString(s) {\n  return s.split('').reverse().join('');\n}",
+    explain:"Split into chars, reverse the array, join back into a string.",
+    explainKeywords:["reverse","split","array"]},
+  {lang:"DSA",level:3,q:"Write a function `binarySearch(arr, target)` that returns the index of target, or -1 if not found. Assume arr is sorted.",code:null,type:"scratch",options:[],answer:0,
+    requirements:["Function named `binarySearch`","Use two pointers (low, high)","Return index or -1"],
+    mustMatch:["function\\s+binarySearch\\s*\\(", "while\\s*\\(", "(mid|middle)", "return\\s+-?1?"],
+    mustNotMatch:["\\.indexOf\\s*\\(", "\\.includes\\s*\\(", "\\.find\\s*\\("],
+    solution:"function binarySearch(arr, target) {\n  let low = 0, high = arr.length - 1;\n  while (low <= high) {\n    const mid = Math.floor((low + high) / 2);\n    if (arr[mid] === target) return mid;\n    if (arr[mid] < target) low = mid + 1;\n    else high = mid - 1;\n  }\n  return -1;\n}",
+    explain:"Binary search halves the search space each iteration → O(log n).",
+    explainKeywords:["log","half","sorted","divide"]},
+  {lang:"Python",level:2,q:"Write a function `is_even(n)` that returns True if n is even.",code:null,type:"scratch",options:[],answer:0,
+    requirements:["Function named `is_even`","Returns boolean"],
+    mustMatch:["def\\s+is_even\\s*\\(", "%\\s*2"],
+    solution:"def is_even(n):\n    return n % 2 == 0",
+    explain:"`n % 2 == 0` checks divisibility by 2.",
+    explainKeywords:["modulo","remainder","divisible","%"]},
+  {lang:"DSA",level:4,q:"Write a recursive function `factorial(n)` that returns n!.",code:null,type:"scratch",options:[],answer:0,
+    requirements:["Recursive (calls itself)","Base case for n <= 1","Returns n * factorial(n-1)"],
+    mustMatch:["function\\s+factorial\\s*\\(|def\\s+factorial\\s*\\(", "factorial\\s*\\(\\s*n\\s*-\\s*1\\s*\\)", "(if|return)\\s+.*(<=|==|<)\\s*1"],
+    solution:"function factorial(n) {\n  if (n <= 1) return 1;\n  return n * factorial(n - 1);\n}",
+    explain:"Recursion needs a base case (n <= 1) and a recursive case (n * factorial(n-1)).",
+    explainKeywords:["base case","recursion","stack","calls itself"]},
+
+  // ===== BUG-FIX =====
+  {lang:"JavaScript",level:2,q:"This function should return the sum of an array. Find and fix the bug.",code:null,type:"bugfix",options:[],answer:0,
+    buggyCode:"function sum(arr) {\n  let total = 0;\n  for (let i = 0; i <= arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}",
+    mustMatch:["i\\s*<\\s*arr\\.length"],
+    mustNotMatch:["i\\s*<=\\s*arr\\.length"],
+    solution:"function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}",
+    hint:"Off-by-one in the loop condition.",
+    explain:"`i <= arr.length` reads one past the end (undefined). Use `i < arr.length`.",
+    explainKeywords:["off-by-one","undefined","length","bounds"]},
+  {lang:"JavaScript",level:2,q:"This greeting function has a bug. Fix it.",code:null,type:"bugfix",options:[],answer:0,
+    buggyCode:"function greet(name) {\n  if (name = 'admin') {\n    return 'Hello boss';\n  }\n  return 'Hello ' + name;\n}",
+    mustMatch:["name\\s*===?\\s*['\"]admin['\"]"],
+    mustNotMatch:["name\\s*=\\s*['\"]admin"],
+    solution:"function greet(name) {\n  if (name === 'admin') {\n    return 'Hello boss';\n  }\n  return 'Hello ' + name;\n}",
+    hint:"Assignment vs comparison.",
+    explain:"`=` assigns, `===` compares. The buggy version always assigns 'admin' to name.",
+    explainKeywords:["assignment","comparison","===","equality"]},
+  {lang:"Python",level:2,q:"This function should return the max of a list. Fix the bug.",code:null,type:"bugfix",options:[],answer:0,
+    buggyCode:"def find_max(nums):\n    max_val = 0\n    for n in nums:\n        if n > max_val:\n            max_val = n\n    return max_val",
+    mustMatch:["max_val\\s*=\\s*nums\\[0\\]|float\\(['\"]-inf['\"]\\)|None"],
+    mustNotMatch:["max_val\\s*=\\s*0"],
+    solution:"def find_max(nums):\n    max_val = nums[0]\n    for n in nums:\n        if n > max_val:\n            max_val = n\n    return max_val",
+    hint:"What if all numbers are negative?",
+    explain:"Initializing to 0 fails for all-negative lists. Use nums[0] or float('-inf').",
+    explainKeywords:["negative","initial","initialize","-inf"]},
+  {lang:"DSA",level:3,q:"This linked list traversal has a bug — it crashes on empty lists. Fix it.",code:null,type:"bugfix",options:[],answer:0,
+    buggyCode:"function printList(head) {\n  let node = head;\n  while (node.next) {\n    console.log(node.value);\n    node = node.next;\n  }\n  console.log(node.value);\n}",
+    mustMatch:["while\\s*\\(\\s*node(\\s*!==?\\s*null)?\\s*\\)|if\\s*\\(\\s*!?\\s*head"],
+    mustNotMatch:["while\\s*\\(\\s*node\\.next\\s*\\)\\s*\\{\\s*console"],
+    solution:"function printList(head) {\n  let node = head;\n  while (node) {\n    console.log(node.value);\n    node = node.next;\n  }\n}",
+    hint:"What happens when `head` is null?",
+    explain:"`while (node)` handles both empty list and end-of-list cleanly.",
+    explainKeywords:["null","empty","check","guard"]},
+  {lang:"Java",level:3,q:"This method should return the average. Find the subtle bug.",code:null,type:"bugfix",options:[],answer:0,
+    buggyCode:"public double average(int[] nums) {\n    int sum = 0;\n    for (int n : nums) sum += n;\n    return sum / nums.length;\n}",
+    mustMatch:["\\(double\\)\\s*sum|sum\\s*\\*\\s*1\\.0|1\\.0\\s*\\*\\s*sum"],
+    solution:"public double average(int[] nums) {\n    int sum = 0;\n    for (int n : nums) sum += n;\n    return (double) sum / nums.length;\n}",
+    hint:"Integer division truncates.",
+    explain:"`int / int` is integer division in Java. Cast to double first.",
+    explainKeywords:["integer division","cast","double","truncate"]},
 ];
 
