@@ -136,6 +136,15 @@ function validatePatterns(answer: string, mustMatch: string[] = [], mustNotMatch
   return true;
 }
 
+function gradeKeywordGroups(answer: string, groups: string[][], threshold = 0.6): { ok: boolean; covered: number; total: number } {
+  const text = answer.toLowerCase();
+  let hits = 0;
+  for (const group of groups) {
+    if (group.some((kw) => text.includes(kw.toLowerCase()))) hits++;
+  }
+  return { ok: hits / groups.length >= threshold, covered: hits, total: groups.length };
+}
+
 const initialState: GameState = {
   screen: "start",
   mode: "challenge",
@@ -166,8 +175,17 @@ const initialState: GameState = {
   srsResurfaced: false,
 };
 
+function isLongForm(q: Question | null): boolean {
+  return !!q && (q.type === "design" || q.type === "mock");
+}
+
 function isFreeform(q: Question | null): boolean {
-  return !!q && (q.type === "typed" || q.type === "fill" || q.type === "scratch" || q.type === "bugfix");
+  return !!q && (q.type === "typed" || q.type === "fill" || q.type === "scratch" || q.type === "bugfix" || q.type === "predict" || isLongForm(q));
+}
+
+function isChoiceLike(q: Question | null): boolean {
+  if (!q) return false;
+  return !isFreeform(q); // choice, bigO, tradeoff
 }
 
 export function useGameState() {
