@@ -14,6 +14,10 @@ const Index = () => {
     answerQuestion,
     answerTyped,
     setTypedAnswer,
+    useHint,
+    submitExplain,
+    setExplainText,
+    skipExplain,
     nextQuestion,
     retryQuestion,
     restart,
@@ -41,6 +45,10 @@ const Index = () => {
             onTypedChange={setTypedAnswer}
             onNext={nextQuestion}
             onRetry={retryQuestion}
+            onUseHint={useHint}
+            onSubmitExplain={submitExplain}
+            onExplainChange={setExplainText}
+            onSkipExplain={skipExplain}
           />
         )}
         {state.screen === "gameover" && (
