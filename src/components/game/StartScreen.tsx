@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
 import { LANGS, LANG_COLORS } from "@/data/questions";
 import type { GameMode } from "@/hooks/useGameState";
+import { isLocked } from "@/lib/prereqs";
+import { getTopScore } from "@/lib/leaderboard";
 
 interface StartScreenProps {
   selectedLangs: string[];
@@ -10,6 +12,7 @@ interface StartScreenProps {
   onSelectNone: () => void;
   onSetMode: (mode: GameMode) => void;
   onStart: () => void;
+  onStats: () => void;
 }
 
 export default function StartScreen({
