@@ -1,4 +1,14 @@
-export type QuestionType = "choice" | "typed" | "fill" | "scratch" | "bugfix";
+export type QuestionType =
+  | "choice"
+  | "typed"
+  | "fill"
+  | "scratch"
+  | "bugfix"
+  | "bigO"      // choice — select Big-O complexity of given snippet
+  | "predict"   // typed — predict the output of a snippet
+  | "tradeoff"  // choice — when would you use X vs Y
+  | "design"    // long-form — system design / architecture, keyword-group graded
+  | "mock";     // long-form — mock interview thought process, keyword-group graded
 
 export interface Question {
   lang: string;
@@ -23,6 +33,13 @@ export interface Question {
   solution?: string;
   // For "explain-back": after correct, ask why. Keywords (any one) needed in their answer.
   explainKeywords?: string[];
+  // For "design"/"mock"/long-form: groups of keywords; user must hit ≥1 per group.
+  // Score = % of groups covered (must be >= passThreshold to count as correct).
+  keywordGroups?: string[][];
+  passThreshold?: number; // 0..1, default 0.6
+  // For "chain": id grouping multi-step build-up questions (run sequentially when one fires).
+  chainId?: string;
+  chainStep?: number;
 }
 
 export const LANG_COLORS: Record<string, { bg: string; border: string; text: string }> = {
