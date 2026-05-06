@@ -273,16 +273,23 @@ export default function GameScreen({
                 ref={taRef}
                 value={state.typedAnswer}
                 onChange={(e) => onTypedChange(e.target.value)}
-                placeholder={isScratch ? "Write your code here..." : "Edit the code to fix it..."}
-                rows={isBugFix ? 8 : 10}
+                placeholder={
+                  isScratch ? "Write your code here..." :
+                  isBugFix ? "Edit the code to fix it..." :
+                  q.type === "design" ? "Outline your design — data flow, storage, scaling, trade-offs..." :
+                  "Walk through your thought process step by step..."
+                }
+                rows={isLongForm ? 10 : isBugFix ? 8 : 10}
                 spellCheck={false}
                 className="w-full p-3 rounded-lg text-xs font-mono bg-background border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all leading-relaxed resize-y"
               />
               <p className="text-[10px] text-muted-foreground font-mono">
-                💡 Validated by pattern matching — write idiomatic code, no shortcuts.
+                💡 {isLongForm
+                  ? `Graded on coverage of key concepts (need ≥${Math.round((q.passThreshold ?? 0.6) * 100)}% of topic groups).`
+                  : "Validated by pattern matching — write idiomatic code, no shortcuts."}
               </p>
               <HintBlock state={state} onUseHint={onUseHint} hints={getHintContent()} />
-              <SubmitBtn disabled={!state.typedAnswer.trim()} label={isBugFix ? "Submit fix →" : "Submit code →"} />
+              <SubmitBtn disabled={!state.typedAnswer.trim()} label={isBugFix ? "Submit fix →" : isLongForm ? "Submit answer →" : "Submit code →"} />
             </form>
           )}
 
