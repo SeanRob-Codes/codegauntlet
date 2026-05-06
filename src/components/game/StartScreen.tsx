@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
 import { LANGS, LANG_COLORS } from "@/data/questions";
 import type { GameMode } from "@/hooks/useGameState";
-import { isLocked } from "@/lib/prereqs";
+import { isLocked, isBypassed, setBypassed } from "@/lib/prereqs";
 import { getTopScore } from "@/lib/leaderboard";
+import { useState } from "react";
 
 interface StartScreenProps {
   selectedLangs: string[];
@@ -26,6 +27,8 @@ export default function StartScreen({
   onStats,
 }: StartScreenProps) {
   const topScore = getTopScore();
+  const [bypass, setBypass] = useState(isBypassed());
+  const toggleBypass = () => { const v = !bypass; setBypassed(v); setBypass(v); };
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -75,7 +78,7 @@ export default function StartScreen({
         <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono mb-3">
           Select topics
         </p>
-        <div className="flex gap-2 mb-3">
+        <div className="flex gap-2 mb-3 flex-wrap">
           <button
             onClick={onSelectAll}
             className="text-xs text-muted-foreground border border-border rounded-full px-3 py-1 hover:text-foreground hover:border-primary/50 transition-colors font-mono"
@@ -87,6 +90,17 @@ export default function StartScreen({
             className="text-xs text-muted-foreground border border-border rounded-full px-3 py-1 hover:text-foreground hover:border-destructive/50 transition-colors font-mono"
           >
             Clear
+          </button>
+          <button
+            onClick={toggleBypass}
+            title="Bypass topic prerequisites and unlock everything"
+            className={`text-xs rounded-full px-3 py-1 font-mono border transition-colors ${
+              bypass
+                ? "bg-warning/15 border-warning/50 text-warning"
+                : "text-muted-foreground border-border hover:text-foreground hover:border-warning/50"
+            }`}
+          >
+            {bypass ? "🔓 Unlocked" : "🔓 Unlock all"}
           </button>
         </div>
         <div className="flex flex-wrap gap-2">

@@ -2,7 +2,15 @@
 // A topic is "unlocked" when the user has answered N correct questions in each prereq topic.
 
 const KEY = "dsg.mastery.v1";
+const BYPASS_KEY = "dsg.mastery.bypass.v1";
 const REQUIRED_HITS = 3;
+
+export function isBypassed(): boolean {
+  try { return localStorage.getItem(BYPASS_KEY) === "1"; } catch { return false; }
+}
+export function setBypassed(v: boolean) {
+  try { localStorage.setItem(BYPASS_KEY, v ? "1" : "0"); } catch {}
+}
 
 // Advanced -> required prerequisite topics
 export const TOPIC_PREREQS: Record<string, string[]> = {
@@ -53,6 +61,7 @@ export function getMastery(): Record<string, number> {
 }
 
 export function isLocked(lang: string): { locked: boolean; missing: { topic: string; need: number; have: number }[] } {
+  if (isBypassed()) return { locked: false, missing: [] };
   const prereqs = TOPIC_PREREQS[lang];
   if (!prereqs) return { locked: false, missing: [] };
   const m = load().correct;
