@@ -315,9 +315,10 @@ export function useGameState() {
     const bonus = correct && s.mode === "challenge" ? calcTimerBonus(s.timeLeft, totalTime) : 0;
     const earned = correct ? Math.max(0, 1 + bonus - s.hintPenalty) : 0;
 
-    // SRS
+    // SRS + mastery
     if (correct) {
       recordCorrect(getQId(s.currentQ), s.currentQ.lang);
+      recordMasteryCorrect(s.currentQ.lang);
     } else {
       recordWrong(
         getQId(s.currentQ),
