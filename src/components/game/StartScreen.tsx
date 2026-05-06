@@ -23,7 +23,9 @@ export default function StartScreen({
   onSelectNone,
   onSetMode,
   onStart,
+  onStats,
 }: StartScreenProps) {
+  const topScore = getTopScore();
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
