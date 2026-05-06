@@ -199,8 +199,9 @@ export function useGameState() {
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
 
-    // No timer for scratch/bugfix — they need thinking time
-    const noTimerType = state.currentQ?.type === "scratch" || state.currentQ?.type === "bugfix";
+    // No timer for code editors and long-form prompts
+    const t = state.currentQ?.type;
+    const noTimerType = t === "scratch" || t === "bugfix" || t === "design" || t === "mock";
 
     if (state.screen === "game" && !state.answered && state.currentQ && state.mode === "challenge" && !noTimerType && !state.awaitingExplain) {
       timerRef.current = setInterval(() => {
@@ -367,9 +368,12 @@ export function useGameState() {
       let correct = false;
       if (q.type === "scratch" || q.type === "bugfix") {
         correct = validatePatterns(userAnswer, q.mustMatch, q.mustNotMatch);
+      } else if (q.type === "design" || q.type === "mock") {
+        const groups = q.keywordGroups || [];
+        if (groups.length) correct = gradeKeywordGroups(userAnswer, groups, q.passThreshold ?? 0.6).ok;
       } else if (q.accept) {
-        const norm = userAnswer.trim().toLowerCase();
-        correct = q.accept.some((a) => a.trim().toLowerCase() === norm);
+        const norm = userAnswer.trim().toLowerCase().replace(/\s+/g, " ");
+        correct = q.accept.some((a) => a.trim().toLowerCase().replace(/\s+/g, " ") === norm);
       }
       return { ...finalizeAnswer(s, correct, userAnswer), chosen: null };
     });
