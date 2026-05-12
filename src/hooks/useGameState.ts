@@ -41,6 +41,8 @@ export interface GameState {
   explainText: string;
   explainAccepted: boolean | null;
   srsResurfaced: boolean;   // current question came from SRS queue
+  attemptsOnQuestion: number; // number of wrong attempts on current question (resets on next question)
+  answerRevealed: boolean;    // user gave up and asked to see the answer
 }
 
 function shuffle<T>(arr: T[]): T[] {
