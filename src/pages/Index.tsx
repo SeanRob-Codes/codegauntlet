@@ -22,6 +22,7 @@ const Index = () => {
     skipExplain,
     nextQuestion,
     retryQuestion,
+    revealAnswer,
     restart,
     goToStats,
     goToStart,
