@@ -487,6 +487,8 @@ export function useGameState() {
         srsResurfaced: resurfaced,
         currentQ: q,
         shuffledOptions: isFreeform(q) ? [] : shuffle(q.options.map((o, i) => ({ o, i }))),
+        attemptsOnQuestion: 0,
+        answerRevealed: false,
       };
     });
   }, []);
