@@ -175,6 +175,8 @@ const initialState: GameState = {
   explainText: "",
   explainAccepted: null,
   srsResurfaced: false,
+  attemptsOnQuestion: 0,
+  answerRevealed: false,
 };
 
 function isLongForm(q: Question | null): boolean {
