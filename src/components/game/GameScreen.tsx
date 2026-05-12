@@ -280,7 +280,7 @@ export default function GameScreen({
                   className="w-full pl-10 pr-4 py-3 rounded-lg text-sm font-mono bg-background border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
                   autoComplete="off" spellCheck={false} />
               </div>
-              <HintBlock state={state} onUseHint={onUseHint} hints={getHintContent()} />
+              <HintBlock state={state} onUseHint={onUseHint} onReveal={onReveal} isPractice={isPractice} hints={getHintContent()} />
               <SubmitBtn disabled={!state.typedAnswer.trim()} />
             </form>
           )}
@@ -307,7 +307,7 @@ export default function GameScreen({
                   ? `Graded on coverage of key concepts (need ≥${Math.round((q.passThreshold ?? 0.6) * 100)}% of topic groups).`
                   : "Validated by pattern matching — write idiomatic code, no shortcuts."}
               </p>
-              <HintBlock state={state} onUseHint={onUseHint} hints={getHintContent()} />
+              <HintBlock state={state} onUseHint={onUseHint} onReveal={onReveal} isPractice={isPractice} hints={getHintContent()} />
               <SubmitBtn disabled={!state.typedAnswer.trim()} label={isBugFix ? "Submit fix →" : isLongForm ? "Submit answer →" : "Submit code →"} />
             </form>
           )}
