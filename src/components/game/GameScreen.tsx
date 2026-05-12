@@ -11,6 +11,7 @@ interface GameScreenProps {
   onTypedChange: (val: string) => void;
   onNext: () => void;
   onRetry: () => void;
+  onReveal: () => void;
   onUseHint: () => void;
   onSubmitExplain: () => void;
   onExplainChange: (val: string) => void;
@@ -18,6 +19,7 @@ interface GameScreenProps {
 }
 
 const LEVEL_LABELS = ["", "Beginner", "Intermediate", "Advanced", "Expert"];
+const OPTION_LETTERS = ["A", "B", "C", "D", "E", "F"];
 
 function getTimerDuration(level: number): number {
   switch (level) {
@@ -30,7 +32,7 @@ function getTimerDuration(level: number): number {
 }
 
 export default function GameScreen({
-  state, onAnswer, onAnswerTyped, onTypedChange, onNext, onRetry,
+  state, onAnswer, onAnswerTyped, onTypedChange, onNext, onRetry, onReveal,
   onUseHint, onSubmitExplain, onExplainChange, onSkipExplain,
 }: GameScreenProps) {
   const q = state.currentQ;
@@ -228,22 +230,39 @@ export default function GameScreen({
           {/* Multiple choice */}
           {!isTyped && (
             <div className="flex flex-col gap-2">
-              {state.shuffledOptions.map(({ o, i }) => {
-                let btnClass = "text-left px-4 py-3 rounded-lg text-sm font-medium border transition-all duration-150";
+              {state.shuffledOptions.map(({ o, i }, displayIdx) => {
+                let btnClass = "flex items-stretch text-left rounded-lg text-sm font-medium border transition-all duration-150 overflow-hidden min-h-[64px]";
+                let letterClass = "flex items-center justify-center w-10 shrink-0 font-mono font-bold text-xs border-r";
                 if (state.answered) {
-                  if (i === q.answer) btnClass += " bg-primary/10 border-primary/50 text-primary box-glow-primary";
-                  else if (i === state.chosen && !state.correct) btnClass += " bg-destructive/10 border-destructive/50 text-destructive box-glow-destructive";
-                  else btnClass += " bg-secondary border-border text-muted-foreground opacity-50";
+                  if (i === q.answer) {
+                    btnClass += " bg-primary/10 border-primary/50 text-primary box-glow-primary";
+                    letterClass += " bg-primary/15 border-primary/40 text-primary";
+                  } else if (i === state.chosen && !state.correct) {
+                    btnClass += " bg-destructive/10 border-destructive/50 text-destructive box-glow-destructive";
+                    letterClass += " bg-destructive/15 border-destructive/40 text-destructive";
+                  } else {
+                    btnClass += " bg-secondary border-border text-muted-foreground opacity-50";
+                    letterClass += " bg-muted/30 border-border text-muted-foreground";
+                  }
                 } else {
                   btnClass += " bg-secondary border-border text-secondary-foreground hover:bg-muted hover:border-muted-foreground/30 hover:text-foreground cursor-pointer";
+                  letterClass += " bg-muted/40 border-border text-muted-foreground";
                 }
                 return (
                   <motion.button key={i} whileTap={!state.answered ? { scale: 0.98 } : undefined}
                     onClick={() => !state.answered && onAnswer(i)} disabled={state.answered} className={btnClass}>
-                    {o}
+                    <span className={letterClass}>{OPTION_LETTERS[displayIdx]}</span>
+                    <span className="flex-1 px-4 py-3 leading-relaxed self-center">{o}</span>
                   </motion.button>
                 );
               })}
+              {/* Give-up button for MC in practice mode after 2+ wrong attempts */}
+              {!state.answered && isPractice && state.attemptsOnQuestion >= 2 && (
+                <button type="button" onClick={onReveal}
+                  className="self-start mt-1 px-3 py-1.5 rounded-lg text-xs font-mono text-muted-foreground border border-border hover:text-warning hover:border-warning/30 transition-all">
+                  🏳 Show me the answer
+                </button>
+              )}
             </div>
           )}
 
@@ -261,7 +280,7 @@ export default function GameScreen({
                   className="w-full pl-10 pr-4 py-3 rounded-lg text-sm font-mono bg-background border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
                   autoComplete="off" spellCheck={false} />
               </div>
-              <HintBlock state={state} onUseHint={onUseHint} hints={getHintContent()} />
+              <HintBlock state={state} onUseHint={onUseHint} onReveal={onReveal} isPractice={isPractice} hints={getHintContent()} />
               <SubmitBtn disabled={!state.typedAnswer.trim()} />
             </form>
           )}
@@ -288,7 +307,7 @@ export default function GameScreen({
                   ? `Graded on coverage of key concepts (need ≥${Math.round((q.passThreshold ?? 0.6) * 100)}% of topic groups).`
                   : "Validated by pattern matching — write idiomatic code, no shortcuts."}
               </p>
-              <HintBlock state={state} onUseHint={onUseHint} hints={getHintContent()} />
+              <HintBlock state={state} onUseHint={onUseHint} onReveal={onReveal} isPractice={isPractice} hints={getHintContent()} />
               <SubmitBtn disabled={!state.typedAnswer.trim()} label={isBugFix ? "Submit fix →" : isLongForm ? "Submit answer →" : "Submit code →"} />
             </form>
           )}
@@ -322,7 +341,7 @@ export default function GameScreen({
                   state.correct ? "bg-primary/10 border-primary/30 text-primary"
                                 : "bg-destructive/10 border-destructive/30 text-destructive"
                 }`}>
-                  {state.correct ? "✓ Correct! " : state.timeLeft <= 0 && state.chosen === -1 ? "⏰ Time's up! " : "✗ Not quite. "}
+                  {state.correct ? "✓ Correct! " : state.answerRevealed ? "🏳 Answer revealed. " : state.timeLeft <= 0 && state.chosen === -1 ? "⏰ Time's up! " : "✗ Not quite. "}
                   {q.explain}
                   {state.correct && state.timerBonus > 0 && (
                     <span className="ml-2 text-xs font-bold text-warning">⚡ +{state.timerBonus} speed bonus</span>
@@ -414,7 +433,8 @@ function Tag({ children, color }: { children: React.ReactNode; color: "primary" 
   );
 }
 
-function HintBlock({ state, onUseHint, hints }: { state: GameState; onUseHint: () => void; hints: string[] | null }) {
+function HintBlock({ state, onUseHint, onReveal, isPractice, hints }: { state: GameState; onUseHint: () => void; onReveal: () => void; isPractice: boolean; hints: string[] | null }) {
+  const canReveal = isPractice && state.attemptsOnQuestion >= 2;
   return (
     <div className="flex flex-col gap-2">
       {hints && hints.map((h, i) => (
@@ -423,11 +443,24 @@ function HintBlock({ state, onUseHint, hints }: { state: GameState; onUseHint: (
           {h}
         </motion.div>
       ))}
-      {state.hintsUsed < 3 && (
-        <button type="button" onClick={onUseHint}
-          className="self-start px-3 py-1.5 rounded-lg text-xs font-mono text-muted-foreground border border-border hover:text-warning hover:border-warning/30 transition-all">
-          {state.hintsUsed === 0 ? "🤔 Hint (−1 pt, flags topic for review)" : `💡 Another hint (${3 - state.hintsUsed} left, −1 pt each)`}
-        </button>
+      <div className="flex flex-wrap gap-2">
+        {state.hintsUsed < 3 && (
+          <button type="button" onClick={onUseHint}
+            className="px-3 py-1.5 rounded-lg text-xs font-mono text-muted-foreground border border-border hover:text-warning hover:border-warning/30 transition-all">
+            {state.hintsUsed === 0 ? "🤔 Hint (−1 pt, flags topic for review)" : `💡 Another hint (${3 - state.hintsUsed} left, −1 pt each)`}
+          </button>
+        )}
+        {canReveal && (
+          <button type="button" onClick={onReveal}
+            className="px-3 py-1.5 rounded-lg text-xs font-mono text-muted-foreground border border-border hover:text-warning hover:border-warning/30 transition-all">
+            🏳 Show me the answer
+          </button>
+        )}
+      </div>
+      {isPractice && state.attemptsOnQuestion === 1 && (
+        <p className="text-[10px] font-mono text-muted-foreground/70">
+          Try once more — a "Show answer" button will appear after your next attempt.
+        </p>
       )}
     </div>
   );

@@ -41,6 +41,8 @@ export interface GameState {
   explainText: string;
   explainAccepted: boolean | null;
   srsResurfaced: boolean;   // current question came from SRS queue
+  attemptsOnQuestion: number; // number of wrong attempts on current question (resets on next question)
+  answerRevealed: boolean;    // user gave up and asked to see the answer
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -173,6 +175,8 @@ const initialState: GameState = {
   explainText: "",
   explainAccepted: null,
   srsResurfaced: false,
+  attemptsOnQuestion: 0,
+  answerRevealed: false,
 };
 
 function isLongForm(q: Question | null): boolean {
@@ -281,6 +285,8 @@ export function useGameState() {
         srsResurfaced: resurfaced,
         currentQ: q,
         shuffledOptions: isFreeform(q) ? [] : shuffle(q.options.map((o, i) => ({ o, i }))),
+        attemptsOnQuestion: 0,
+        answerRevealed: false,
       };
     });
   }, []);
@@ -349,8 +355,33 @@ export function useGameState() {
       awaitingExplain: askExplain,
       explainText: "",
       explainAccepted: null,
+      attemptsOnQuestion: correct ? s.attemptsOnQuestion : s.attemptsOnQuestion + 1,
     };
   };
+
+  const revealAnswer = useCallback(() => {
+    setState((s) => {
+      if (!s.currentQ || s.answered) return s;
+      const q = s.currentQ;
+      recordWrong(
+        getQId(q),
+        q.lang,
+        q.q,
+        s.typedAnswer || "(gave up)",
+        q.accept?.[0] || q.solution || (q.options[q.answer] ?? ""),
+      );
+      return {
+        ...s,
+        answered: true,
+        correct: false,
+        chosen: q.answer,
+        retryAvailable: false,
+        answerRevealed: true,
+        total: s.total + 1,
+        streak: 0,
+      };
+    });
+  }, []);
 
   const answerQuestion = useCallback((chosenIdx: number) => {
     setState((s) => {
@@ -456,6 +487,8 @@ export function useGameState() {
         srsResurfaced: resurfaced,
         currentQ: q,
         shuffledOptions: isFreeform(q) ? [] : shuffle(q.options.map((o, i) => ({ o, i }))),
+        attemptsOnQuestion: 0,
+        answerRevealed: false,
       };
     });
   }, []);
@@ -487,6 +520,7 @@ export function useGameState() {
     skipExplain,
     nextQuestion,
     retryQuestion,
+    revealAnswer,
     restart,
     goToStats,
     goToStart,
