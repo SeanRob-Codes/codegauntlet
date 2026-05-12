@@ -433,7 +433,8 @@ function Tag({ children, color }: { children: React.ReactNode; color: "primary" 
   );
 }
 
-function HintBlock({ state, onUseHint, hints }: { state: GameState; onUseHint: () => void; hints: string[] | null }) {
+function HintBlock({ state, onUseHint, onReveal, isPractice, hints }: { state: GameState; onUseHint: () => void; onReveal: () => void; isPractice: boolean; hints: string[] | null }) {
+  const canReveal = isPractice && state.attemptsOnQuestion >= 2;
   return (
     <div className="flex flex-col gap-2">
       {hints && hints.map((h, i) => (
@@ -442,11 +443,24 @@ function HintBlock({ state, onUseHint, hints }: { state: GameState; onUseHint: (
           {h}
         </motion.div>
       ))}
-      {state.hintsUsed < 3 && (
-        <button type="button" onClick={onUseHint}
-          className="self-start px-3 py-1.5 rounded-lg text-xs font-mono text-muted-foreground border border-border hover:text-warning hover:border-warning/30 transition-all">
-          {state.hintsUsed === 0 ? "🤔 Hint (−1 pt, flags topic for review)" : `💡 Another hint (${3 - state.hintsUsed} left, −1 pt each)`}
-        </button>
+      <div className="flex flex-wrap gap-2">
+        {state.hintsUsed < 3 && (
+          <button type="button" onClick={onUseHint}
+            className="px-3 py-1.5 rounded-lg text-xs font-mono text-muted-foreground border border-border hover:text-warning hover:border-warning/30 transition-all">
+            {state.hintsUsed === 0 ? "🤔 Hint (−1 pt, flags topic for review)" : `💡 Another hint (${3 - state.hintsUsed} left, −1 pt each)`}
+          </button>
+        )}
+        {canReveal && (
+          <button type="button" onClick={onReveal}
+            className="px-3 py-1.5 rounded-lg text-xs font-mono text-muted-foreground border border-border hover:text-warning hover:border-warning/30 transition-all">
+            🏳 Show me the answer
+          </button>
+        )}
+      </div>
+      {isPractice && state.attemptsOnQuestion === 1 && (
+        <p className="text-[10px] font-mono text-muted-foreground/70">
+          Try once more — a "Show answer" button will appear after your next attempt.
+        </p>
       )}
     </div>
   );
