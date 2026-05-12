@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import logo from "@/assets/coderush-logo.png";
 import { LANGS, LANG_COLORS } from "@/data/questions";
 import type { GameMode } from "@/hooks/useGameState";
 import { isLocked, isBypassed, setBypassed } from "@/lib/prereqs";
@@ -36,10 +37,13 @@ export default function StartScreen({
       transition={{ duration: 0.5 }}
       className="text-center py-8"
     >
-      <h1 className="text-3xl md:text-4xl font-mono font-extrabold text-foreground tracking-tight text-glow-primary">
-        Dev Skills Gauntlet
-      </h1>
-      <p className="text-muted-foreground text-sm mt-2 max-w-md mx-auto leading-relaxed">
+      <img
+        src={logo}
+        alt="CodeRush — Think fast. Code faster."
+        className="mx-auto w-56 md:w-72 h-auto drop-shadow-[0_0_30px_hsl(var(--primary)/0.35)] select-none"
+        draggable={false}
+      />
+      <p className="text-muted-foreground text-sm mt-3 max-w-md mx-auto leading-relaxed">
         Adaptive coding challenges across 40+ topics.
         <br />
         Answer correctly → harder questions. Beat the timer for bonus points.
