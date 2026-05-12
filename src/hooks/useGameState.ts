@@ -9,6 +9,7 @@ import {
 } from "@/lib/srs";
 import { saveScore } from "@/lib/leaderboard";
 import { recordMasteryCorrect, isLocked } from "@/lib/prereqs";
+import { recordLanguageAttempt, recordRunBestScore } from "@/lib/scoreSync";
 
 export type Screen = "start" | "game" | "gameover" | "stats";
 export type GameMode = "challenge" | "practice";
@@ -334,6 +335,8 @@ export function useGameState() {
         s.currentQ.accept?.[0] || s.currentQ.solution || (s.currentQ.options[s.currentQ.answer] ?? ""),
       );
     }
+    // Sync to backend (fire and forget)
+    void recordLanguageAttempt(s.currentQ.lang, correct);
 
     // Explain-back: 30% of correct answers, only if keywords defined
     const askExplain = correct && !!s.currentQ.explainKeywords?.length && Math.random() < 0.3;
@@ -459,6 +462,7 @@ export function useGameState() {
           mode: s.mode,
           langs: s.selectedLangs,
         });
+        void recordRunBestScore(s.score, s.selectedLangs);
         return { ...s, screen: "gameover" };
       }
       // Continue chain if last question was a chain step and was correct
