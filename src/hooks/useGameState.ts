@@ -520,6 +520,7 @@ export function useGameState() {
     skipExplain,
     nextQuestion,
     retryQuestion,
+    revealAnswer,
     restart,
     goToStats,
     goToStart,
