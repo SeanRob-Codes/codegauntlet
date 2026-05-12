@@ -9,6 +9,7 @@ import {
 } from "@/lib/srs";
 import { saveScore } from "@/lib/leaderboard";
 import { recordMasteryCorrect, isLocked } from "@/lib/prereqs";
+import { recordLanguageAttempt, recordRunBestScore } from "@/lib/scoreSync";
 
 export type Screen = "start" | "game" | "gameover" | "stats";
 export type GameMode = "challenge" | "practice";
