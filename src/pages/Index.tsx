@@ -1,11 +1,14 @@
 import { useEffect } from "react";
+import { Navigate } from "react-router-dom";
 import { useGameState } from "@/hooks/useGameState";
+import { useAuth } from "@/hooks/useAuth";
 import StartScreen from "@/components/game/StartScreen";
 import GameScreen from "@/components/game/GameScreen";
 import GameOverScreen from "@/components/game/GameOverScreen";
 import StatsScreen from "@/components/game/StatsScreen";
 
 const Index = () => {
+  const { session, loading } = useAuth();
   const {
     state,
     toggleLang,
@@ -64,6 +67,9 @@ const Index = () => {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [state.screen, state.answered, state.currentQ, state.shuffledOptions, state.awaitingExplain, nextQuestion, answerQuestion, restart, goToStart]);
+
+  if (loading) return <div className="min-h-screen bg-background" />;
+  if (!session) return <Navigate to="/auth" replace />;
 
   return (
     <div className="min-h-screen bg-background flex justify-center items-start p-4 md:p-8">
