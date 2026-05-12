@@ -88,6 +88,7 @@ const Index = () => {
             onTypedChange={setTypedAnswer}
             onNext={nextQuestion}
             onRetry={retryQuestion}
+            onReveal={revealAnswer}
             onUseHint={useHint}
             onSubmitExplain={submitExplain}
             onExplainChange={setExplainText}
