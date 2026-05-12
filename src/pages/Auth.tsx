@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import logo from "@/assets/coderush-logo.png";
 
 type Tab = "signin" | "signup" | "forgot";
 
@@ -55,7 +56,13 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 gap-6">
+      <img
+        src={logo}
+        alt="CodeRush — Think fast. Code faster."
+        className="w-64 md:w-80 h-auto drop-shadow-[0_0_40px_hsl(var(--primary)/0.4)] select-none"
+        draggable={false}
+      />
       <div className="w-full max-w-md bg-card border border-border rounded-2xl p-8 shadow-2xl">
         <h1 className="text-2xl font-mono font-extrabold text-foreground text-glow-primary mb-1">
           {tab === "signin" ? "Sign in" : tab === "signup" ? "Create account" : "Reset password"}
@@ -84,10 +91,6 @@ export default function Auth() {
             {busy ? "..." : tab === "signin" ? "Sign in" : tab === "signup" ? "Create account" : "Send reset link"}
           </button>
         </form>
-
-        <Link to="/" className="block mt-6 text-center text-xs font-mono text-muted-foreground hover:text-foreground">
-          ← Continue without account
-        </Link>
       </div>
     </div>
   );
