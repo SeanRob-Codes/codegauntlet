@@ -93,8 +93,8 @@ export default function Friends() {
   if (loading) return <div className="min-h-screen flex items-center justify-center font-mono text-muted-foreground">Loading…</div>;
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-3xl mx-auto bg-card border border-border rounded-2xl p-6 md:p-8">
+    <div className="min-h-screen bg-background px-3 pt-16 pb-6 sm:p-6 md:p-8">
+      <div className="max-w-3xl mx-auto bg-card border border-border rounded-2xl p-4 sm:p-6 md:p-8">
         <div className="flex items-center justify-between mb-6">
           <Link to="/" className="text-xs font-mono text-muted-foreground hover:text-foreground">← Home</Link>
           <Link to="/profile" className="text-xs font-mono px-3 py-1.5 rounded-lg border border-border hover:border-primary/50">👤 Profile</Link>

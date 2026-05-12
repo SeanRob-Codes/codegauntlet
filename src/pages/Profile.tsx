@@ -71,8 +71,8 @@ export default function Profile() {
   const sortedScores = [...scores].sort((a, b) => b.best_score - a.best_score);
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-2xl mx-auto bg-card border border-border rounded-2xl p-6 md:p-8">
+    <div className="min-h-screen bg-background px-3 pt-16 pb-6 sm:p-6 md:p-8">
+      <div className="max-w-2xl mx-auto bg-card border border-border rounded-2xl p-4 sm:p-6 md:p-8">
         <div className="flex items-center justify-between mb-6">
           <Link to="/" className="text-xs font-mono text-muted-foreground hover:text-foreground">← Home</Link>
           <div className="flex gap-2">
