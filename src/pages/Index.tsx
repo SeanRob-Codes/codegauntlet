@@ -72,8 +72,8 @@ const Index = () => {
   if (!session) return <Navigate to="/auth" replace />;
 
   return (
-    <div className="min-h-screen bg-background flex justify-center items-start p-4 md:p-8">
-      <div className="w-full max-w-[680px] bg-card border border-border rounded-2xl p-6 md:p-8 shadow-2xl">
+    <div className="min-h-screen bg-background flex justify-center items-start px-3 pt-16 pb-6 sm:p-6 md:p-8">
+      <div className="w-full max-w-[680px] bg-card border border-border rounded-2xl p-4 sm:p-6 md:p-8 shadow-2xl">
         {state.screen === "start" && (
           <StartScreen
             selectedLangs={state.selectedLangs}

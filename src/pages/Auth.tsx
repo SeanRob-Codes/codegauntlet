@@ -56,14 +56,14 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 gap-6">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-8 gap-5 sm:gap-6">
       <img
         src={logo}
         alt="CodeRush — Think fast. Code faster."
-        className="w-64 md:w-80 h-auto drop-shadow-[0_0_40px_hsl(var(--primary)/0.4)] select-none"
+        className="w-48 sm:w-64 md:w-80 h-auto drop-shadow-[0_0_40px_hsl(var(--primary)/0.4)] select-none"
         draggable={false}
       />
-      <div className="w-full max-w-md bg-card border border-border rounded-2xl p-8 shadow-2xl">
+      <div className="w-full max-w-md bg-card border border-border rounded-2xl p-5 sm:p-8 shadow-2xl">
         <h1 className="text-2xl font-mono font-extrabold text-foreground text-glow-primary mb-1">
           {tab === "signin" ? "Sign in" : tab === "signup" ? "Create account" : "Reset password"}
         </h1>
