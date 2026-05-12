@@ -353,8 +353,33 @@ export function useGameState() {
       awaitingExplain: askExplain,
       explainText: "",
       explainAccepted: null,
+      attemptsOnQuestion: correct ? s.attemptsOnQuestion : s.attemptsOnQuestion + 1,
     };
   };
+
+  const revealAnswer = useCallback(() => {
+    setState((s) => {
+      if (!s.currentQ || s.answered) return s;
+      const q = s.currentQ;
+      recordWrong(
+        getQId(q),
+        q.lang,
+        q.q,
+        s.typedAnswer || "(gave up)",
+        q.accept?.[0] || q.solution || (q.options[q.answer] ?? ""),
+      );
+      return {
+        ...s,
+        answered: true,
+        correct: false,
+        chosen: q.answer,
+        retryAvailable: false,
+        answerRevealed: true,
+        total: s.total + 1,
+        streak: 0,
+      };
+    });
+  }, []);
 
   const answerQuestion = useCallback((chosenIdx: number) => {
     setState((s) => {
