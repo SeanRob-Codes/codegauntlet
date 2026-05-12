@@ -341,7 +341,7 @@ export default function GameScreen({
                   state.correct ? "bg-primary/10 border-primary/30 text-primary"
                                 : "bg-destructive/10 border-destructive/30 text-destructive"
                 }`}>
-                  {state.correct ? "✓ Correct! " : state.timeLeft <= 0 && state.chosen === -1 ? "⏰ Time's up! " : "✗ Not quite. "}
+                  {state.correct ? "✓ Correct! " : state.answerRevealed ? "🏳 Answer revealed. " : state.timeLeft <= 0 && state.chosen === -1 ? "⏰ Time's up! " : "✗ Not quite. "}
                   {q.explain}
                   {state.correct && state.timerBonus > 0 && (
                     <span className="ml-2 text-xs font-bold text-warning">⚡ +{state.timerBonus} speed bonus</span>
