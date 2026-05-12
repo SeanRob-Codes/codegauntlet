@@ -11,6 +11,7 @@ interface GameScreenProps {
   onTypedChange: (val: string) => void;
   onNext: () => void;
   onRetry: () => void;
+  onReveal: () => void;
   onUseHint: () => void;
   onSubmitExplain: () => void;
   onExplainChange: (val: string) => void;
@@ -18,6 +19,7 @@ interface GameScreenProps {
 }
 
 const LEVEL_LABELS = ["", "Beginner", "Intermediate", "Advanced", "Expert"];
+const OPTION_LETTERS = ["A", "B", "C", "D", "E", "F"];
 
 function getTimerDuration(level: number): number {
   switch (level) {
@@ -30,7 +32,7 @@ function getTimerDuration(level: number): number {
 }
 
 export default function GameScreen({
-  state, onAnswer, onAnswerTyped, onTypedChange, onNext, onRetry,
+  state, onAnswer, onAnswerTyped, onTypedChange, onNext, onRetry, onReveal,
   onUseHint, onSubmitExplain, onExplainChange, onSkipExplain,
 }: GameScreenProps) {
   const q = state.currentQ;
