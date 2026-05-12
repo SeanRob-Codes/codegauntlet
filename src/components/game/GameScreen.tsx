@@ -230,22 +230,39 @@ export default function GameScreen({
           {/* Multiple choice */}
           {!isTyped && (
             <div className="flex flex-col gap-2">
-              {state.shuffledOptions.map(({ o, i }) => {
-                let btnClass = "text-left px-4 py-3 rounded-lg text-sm font-medium border transition-all duration-150";
+              {state.shuffledOptions.map(({ o, i }, displayIdx) => {
+                let btnClass = "flex items-stretch text-left rounded-lg text-sm font-medium border transition-all duration-150 overflow-hidden min-h-[64px]";
+                let letterClass = "flex items-center justify-center w-10 shrink-0 font-mono font-bold text-xs border-r";
                 if (state.answered) {
-                  if (i === q.answer) btnClass += " bg-primary/10 border-primary/50 text-primary box-glow-primary";
-                  else if (i === state.chosen && !state.correct) btnClass += " bg-destructive/10 border-destructive/50 text-destructive box-glow-destructive";
-                  else btnClass += " bg-secondary border-border text-muted-foreground opacity-50";
+                  if (i === q.answer) {
+                    btnClass += " bg-primary/10 border-primary/50 text-primary box-glow-primary";
+                    letterClass += " bg-primary/15 border-primary/40 text-primary";
+                  } else if (i === state.chosen && !state.correct) {
+                    btnClass += " bg-destructive/10 border-destructive/50 text-destructive box-glow-destructive";
+                    letterClass += " bg-destructive/15 border-destructive/40 text-destructive";
+                  } else {
+                    btnClass += " bg-secondary border-border text-muted-foreground opacity-50";
+                    letterClass += " bg-muted/30 border-border text-muted-foreground";
+                  }
                 } else {
                   btnClass += " bg-secondary border-border text-secondary-foreground hover:bg-muted hover:border-muted-foreground/30 hover:text-foreground cursor-pointer";
+                  letterClass += " bg-muted/40 border-border text-muted-foreground";
                 }
                 return (
                   <motion.button key={i} whileTap={!state.answered ? { scale: 0.98 } : undefined}
                     onClick={() => !state.answered && onAnswer(i)} disabled={state.answered} className={btnClass}>
-                    {o}
+                    <span className={letterClass}>{OPTION_LETTERS[displayIdx]}</span>
+                    <span className="flex-1 px-4 py-3 leading-relaxed self-center">{o}</span>
                   </motion.button>
                 );
               })}
+              {/* Give-up button for MC in practice mode after 2+ wrong attempts */}
+              {!state.answered && isPractice && state.attemptsOnQuestion >= 2 && (
+                <button type="button" onClick={onReveal}
+                  className="self-start mt-1 px-3 py-1.5 rounded-lg text-xs font-mono text-muted-foreground border border-border hover:text-warning hover:border-warning/30 transition-all">
+                  🏳 Show me the answer
+                </button>
+              )}
             </div>
           )}
 
